@@ -15,9 +15,8 @@ function PSI.ProblemResults(problem::PSI.OperationsProblem{MILPDualProblem})
     undo_relax = JuMP.relax_integrality(container.JuMPmodel);
     
     PSI.solve!(problem)
-    PSI._apply_warm_start!(problem)
-
     duals = PSI.read_duals(PSI.get_optimization_container(problem))
+    PSI._apply_warm_start!(problem)
 
     undo_relax()
     unfix_binary_variables(binary_variables)
@@ -56,40 +55,6 @@ function PSI.write_model_results!(store, problem::PSI.OperationsProblem{MILPDual
     else
         export_params = nothing
     end
-    # This line should only be called if the problem is exporting duals. Otherwise ignore.
-    if has_binary_variables(PSI.get_optimization_container(problem)) || has_integer_variables(PSI.get_optimization_container(problem))
-        @warn "Problem $(PSI.get_simulation_info(problem).name) is a MILP, the problem will be resolved as LP with  binary variables fixed"
-        
-        PSI._apply_warm_start!(problem)
-        
-        binary_variables = get_binary_variables(problem)
-        fix_binary_variables(binary_variables)
-        undo_relax = JuMP.relax_integrality(optimization_container.JuMPmodel);
-        
-        PSI.solve!(problem)
-        PSI._apply_warm_start!(problem)
-        
-        PSI._write_model_dual_results!(
-            store,
-            optimization_container,
-            problem,
-            timestamp,
-            export_params,
-        )
-
-        undo_relax()
-        unfix_binary_variables(binary_variables)
-
-        PSI.solve!(problem)
-    else
-        PSI._write_model_dual_results!(
-            store,
-            optimization_container,
-            problem,
-            timestamp,
-            export_params,
-        )
-    end
 
     PSI._write_model_parameter_results!(
         store,
@@ -105,6 +70,40 @@ function PSI.write_model_results!(store, problem::PSI.OperationsProblem{MILPDual
         timestamp,
         export_params,
     )
+
+    # This line should only be called if the problem is exporting duals. Otherwise ignore.
+    if has_binary_variables(PSI.get_optimization_container(problem)) || has_integer_variables(PSI.get_optimization_container(problem))
+        @warn "Problem $(PSI.get_simulation_info(problem).name) is a MILP, the problem will be resolved as LP with  binary variables fixed"
+        
+        PSI._apply_warm_start!(problem)
+        
+        binary_variables = get_binary_variables(problem)
+        fix_binary_variables(binary_variables)
+        undo_relax = JuMP.relax_integrality(optimization_container.JuMPmodel);
+        
+        PSI.solve!(problem)
+        PSI._write_model_dual_results!(
+            store,
+            optimization_container,
+            problem,
+            timestamp,
+            export_params,
+        )
+        PSI._apply_warm_start!(problem)
+        undo_relax()
+        unfix_binary_variables(binary_variables)
+
+        PSI.solve!(problem)
+    else
+        PSI._write_model_dual_results!(
+            store,
+            optimization_container,
+            problem,
+            timestamp,
+            export_params,
+        )
+    end
+
     return
 end
 
@@ -120,32 +119,32 @@ function get_binary_variables(problem)
     return binary_variables
 end
 
-# function relax_binary_variables(binary_variables)
-#     for (var_name, data_array) in binary_variables
-#         for var_ref in data_array
-#             JuMP.unset_binary(var_ref)
-#         end
-#     end
-#     return 
-# end
-
-function fix_binary_variables(binary_variables)
+function relax_binary_variables(binary_variables)
     for (var_name, data_array) in binary_variables
         for var_ref in data_array
-            JuMP.fix(var_ref, JuMP.value(var_ref); force = true)
+            JuMP.unset_binary(var_ref)
         end
     end
     return 
 end
 
-# function reset_binary_variables(binary_variables)
-#     for (var_name, data_array) in binary_variables
-#         for var_ref in data_array
-#             JuMP.set_binary(var_ref)
-#         end
-#     end
-#     return 
-# end
+function fix_binary_variables(binary_variables)
+    for (var_name, data_array) in binary_variables
+        for var_ref in data_array
+            JuMP.fix(var_ref, abs(JuMP.value(var_ref)); force = true)
+        end
+    end
+    return 
+end
+
+function reset_binary_variables(binary_variables)
+    for (var_name, data_array) in binary_variables
+        for var_ref in data_array
+            JuMP.set_binary(var_ref)
+        end
+    end
+    return 
+end
 
 function unfix_binary_variables(binary_variables)
     for (var_name, data_array) in binary_variables
