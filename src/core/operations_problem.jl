@@ -56,21 +56,6 @@ function PSI.write_model_results!(store, problem::PSI.OperationsProblem{MILPDual
         export_params = nothing
     end
 
-    PSI._write_model_parameter_results!(
-        store,
-        optimization_container,
-        problem,
-        timestamp,
-        export_params,
-    )
-    PSI._write_model_variable_results!(
-        store,
-        optimization_container,
-        problem,
-        timestamp,
-        export_params,
-    )
-
     # This line should only be called if the problem is exporting duals. Otherwise ignore.
     if has_binary_variables(PSI.get_optimization_container(problem)) || has_integer_variables(PSI.get_optimization_container(problem))
         @warn "Problem $(PSI.get_simulation_info(problem).name) is a MILP, the problem will be resolved as LP with  binary variables fixed"
@@ -103,6 +88,21 @@ function PSI.write_model_results!(store, problem::PSI.OperationsProblem{MILPDual
             export_params,
         )
     end
+
+    PSI._write_model_parameter_results!(
+        store,
+        optimization_container,
+        problem,
+        timestamp,
+        export_params,
+    )
+    PSI._write_model_variable_results!(
+        store,
+        optimization_container,
+        problem,
+        timestamp,
+        export_params,
+    )
 
     return
 end
