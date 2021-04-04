@@ -2,7 +2,8 @@ abstract type MILPDualProblem <: PSI.PowerSimulationsOperationsProblem end
 
 function PSI.ProblemResults(problem::PSI.OperationsProblem{MILPDualProblem})
     status = PSI.get_run_status(problem)
-    status != PSI.RunStatus.SUCCESSFUL && error("problem was not solved successfully: $status")
+    status != PSI.RunStatus.SUCCESSFUL &&
+        error("problem was not solved successfully: $status")
 
     container = PSI.get_optimization_container(problem)
     variables = PSI.read_variables(container)
@@ -12,8 +13,8 @@ function PSI.ProblemResults(problem::PSI.OperationsProblem{MILPDualProblem})
     PSI._apply_warm_start!(problem)
     binary_variables = get_binary_variables(problem)
     fix_binary_variables(binary_variables)
-    undo_relax = JuMP.relax_integrality(container.JuMPmodel);
-    
+    undo_relax = JuMP.relax_integrality(container.JuMPmodel)
+
     PSI.solve!(problem)
     duals = PSI.read_duals(PSI.get_optimization_container(problem))
     PSI._apply_warm_start!(problem)
@@ -42,7 +43,12 @@ function PSI.ProblemResults(problem::PSI.OperationsProblem{MILPDualProblem})
     )
 end
 
-function PSI.write_model_results!(store, problem::PSI.OperationsProblem{MILPDualProblem}, timestamp; exports = nothing)
+function PSI.write_model_results!(
+    store,
+    problem::PSI.OperationsProblem{MILPDualProblem},
+    timestamp;
+    exports = nothing,
+)
     optimization_container = PSI.get_optimization_container(problem)
     if exports !== nothing
         export_params = Dict{Symbol, Any}(
@@ -57,15 +63,16 @@ function PSI.write_model_results!(store, problem::PSI.OperationsProblem{MILPDual
     end
 
     # This line should only be called if the problem is exporting duals. Otherwise ignore.
-    if has_binary_variables(PSI.get_optimization_container(problem)) || has_integer_variables(PSI.get_optimization_container(problem))
+    if has_binary_variables(PSI.get_optimization_container(problem)) ||
+       has_integer_variables(PSI.get_optimization_container(problem))
         @warn "Problem $(PSI.get_simulation_info(problem).name) is a MILP, the problem will be resolved as LP with  binary variables fixed"
-        
+
         PSI._apply_warm_start!(problem)
-        
+
         binary_variables = get_binary_variables(problem)
         fix_binary_variables(binary_variables)
-        undo_relax = JuMP.relax_integrality(optimization_container.JuMPmodel);
-        
+        undo_relax = JuMP.relax_integrality(optimization_container.JuMPmodel)
+
         PSI.solve!(problem)
         PSI._write_model_dual_results!(
             store,
@@ -107,7 +114,6 @@ function PSI.write_model_results!(store, problem::PSI.OperationsProblem{MILPDual
     return
 end
 
-
 function get_binary_variables(problem)
     binary_variables = Dict()
     variable_refs = PSI.get_variables(problem)
@@ -125,7 +131,7 @@ function relax_binary_variables(binary_variables)
             JuMP.unset_binary(var_ref)
         end
     end
-    return 
+    return
 end
 
 function fix_binary_variables(binary_variables)
@@ -134,7 +140,13 @@ function fix_binary_variables(binary_variables)
             JuMP.fix(var_ref, abs(JuMP.value(var_ref)); force = true)
         end
     end
-    return 
+    return
+end
+
+function fix_all_variables(optimization_container)
+    all_vars = JuMP.all_variables(optimization_container.JuMPmodel)
+    JuMP.fix.(all_vars, JuMP.value.(all_vars); force = true)
+    return
 end
 
 function reset_binary_variables(binary_variables)
@@ -143,7 +155,7 @@ function reset_binary_variables(binary_variables)
             JuMP.set_binary(var_ref)
         end
     end
-    return 
+    return
 end
 
 function unfix_binary_variables(binary_variables)
@@ -152,20 +164,55 @@ function unfix_binary_variables(binary_variables)
             JuMP.unfix(var_ref)
         end
     end
-    return 
+    return
+end
+
+function unfix_all_variables(optimization_container)
+    all_vars = JuMP.all_variables(optimization_container.JuMPmodel)
+    JuMP.unfix.(all_vars)
+    return
 end
 
 function has_binary_variables(container)
-    if !isempty(JuMP.all_constraints(container.JuMPmodel, JuMP.VariableRef, JuMP.MOI.ZeroOne))
+    if !isempty(
+        JuMP.all_constraints(container.JuMPmodel, JuMP.VariableRef, JuMP.MOI.ZeroOne),
+    )
         return true
     end
     return false
 end
 
 function has_integer_variables(container)
-    if !isempty(JuMP.all_constraints(container.JuMPmodel, JuMP.VariableRef, JuMP.MOI.Integer))
+    if !isempty(
+        JuMP.all_constraints(container.JuMPmodel, JuMP.VariableRef, JuMP.MOI.Integer),
+    )
         return true
     end
     return false
 end
-        
+
+function apply_warm_start(problem)
+    optimization_container = PSI.get_optimization_container(problem)
+    jump_model = PSI.get_jump_model(optimization_container)
+    all_vars = JuMP.all_variables(jump_model)
+    JuMP.set_start_value.(all_vars, round.(JuMP.value.(all_vars), digits = 5))
+    return
+end
+
+#=
+# Only to be used with Gurobi Only
+function apply_var_hint(problem)
+    optimization_container = PSI.get_optimization_container(problem)
+    jump_model = PSI.get_jump_model(optimization_container)
+    all_vars = JuMP.all_variables(jump_model)
+    values_for_the_variables = JuMP.value.(all_vars)
+
+    MOI.set.(
+        jump_model,
+        Gurobi.VariableAttribute("VarHintVal"),
+        all_vars,
+        values_for_the_variables,
+    )
+    return
+end
+=#
