@@ -1,6 +1,33 @@
 abstract type ResponseReserve <: PSI.AbstractReservesFormulation end
 struct RampReserve <: ResponseReserve end
 struct QuadraticCostRampReserve <: ResponseReserve end
+struct InertiaReserve <: PSI.AbstractReservesFormulation end
+
+PSI.get_variable_binary(
+    ::InertiaServiceVariable,
+    ::Type{<:PSY.Reserve},
+    ::PSI.AbstractReservesFormulation,
+) = false
+PSI.get_variable_upper_bound(
+    ::InertiaServiceVariable,
+    ::PSY.Reserve,
+    d::PSY.ThermalGen,
+    _,
+) = _get_inertia(d) * PSY.get_base_power(d)
+PSI.get_variable_lower_bound(::InertiaServiceVariable, ::PSY.Reserve, ::PSY.Component, _) =
+    0.0
+
+function _get_inertia(d::PSY.ThermalGen)
+    if haskey(PSY.get_ext(d), "inertia")
+        return PSY.get_ext(d)["inertia"]
+    else
+        return 0.0
+    end
+end
+
+function _get_inertia(d::PSY.Component)
+    return 0.0
+end
 
 _get_ramp_limits(::PSY.Component) = nothing
 _get_ramp_limits(d::PSY.ThermalGen) = PSY.get_ramp_limits(d)
@@ -105,6 +132,62 @@ end
 function PSI.service_requirement_constraint!(
     optimization_container::PSI.OptimizationContainer,
     service::SR,
+    ::PSI.ServiceModel{SR, InertiaReserve},
+) where {SR <: PSY.Reserve}
+    parameters = PSI.model_has_parameters(optimization_container)
+    use_forecast_data = PSI.model_uses_forecasts(optimization_container)
+    initial_time = PSI.model_initial_time(optimization_container)
+    @debug initial_time
+    time_steps = PSI.model_time_steps(optimization_container)
+    name = PSY.get_name(service)
+    constraint = PSI.get_constraint(
+        optimization_container,
+        PSI.make_constraint_name(PSI.REQUIREMENT, SR),
+    )
+    reserve_variable = PSI.get_variable(optimization_container, name, SR)
+    use_slacks = PSI.get_services_slack_variables(optimization_container.settings)
+
+    ts_vector = PSI.get_time_series(optimization_container, service, "requirement")
+
+    use_slacks && (slack_vars = PSI.reserve_slacks(optimization_container, name))
+
+    requirement = PSY.get_requirement(service)
+    if parameters
+        container = PSI.get_parameter_container(
+            optimization_container,
+            PSI.UpdateRef{SR}(PSI.SERVICE_REQUIREMENT, "requirement"),
+        )
+        param = PSI.get_parameter_array(container)
+        multiplier = PSI.get_multiplier_array(container)
+        for t in time_steps
+            param[name, t] =
+                PSI.add_parameter(optimization_container.JuMPmodel, ts_vector[t])
+            multiplier[name, t] = 1.0
+            if use_slacks
+                resource_expression = sum(reserve_variable[:, t]) + slack_vars[t]
+            else
+                resource_expression = sum(reserve_variable[:, t])
+            end
+            mul = (requirement * multiplier[name, t])
+            constraint[name, t] = JuMP.@constraint(
+                optimization_container.JuMPmodel,
+                resource_expression >= param[name, t] * mul
+            )
+        end
+    else
+        for t in time_steps
+            constraint[name, t] = JuMP.@constraint(
+                optimization_container.JuMPmodel,
+                sum(reserve_variable[:, t]) >= ts_vector[t] * requirement
+            )
+        end
+    end
+    return
+end
+
+function PSI.service_requirement_constraint!(
+    optimization_container::PSI.OptimizationContainer,
+    service::SR,
     ::PSI.ServiceModel{SR, QuadraticCostRampReserve},
 ) where {SR <: PSY.ReserveDemandCurve}
     initial_time = PSI.model_initial_time(optimization_container)
@@ -134,6 +217,17 @@ function PSI.include_service!(
     services,
     ::PSI.ServiceModel{SR, <:ResponseReserve},
 ) where {T <: PSI.AbstractRampConstraintInfo, SR <: PSY.Reserve}
+    return
+end
+
+function PSI.include_service!(
+    constraint_info::T,
+    services,
+    ::PSI.ServiceModel{SR, InertiaReserve},
+) where {
+    T <: Union{PSI.AbstractRangeConstraintInfo, PSI.AbstractRampConstraintInfo},
+    SR <: PSY.Reserve,
+}
     return
 end
 
