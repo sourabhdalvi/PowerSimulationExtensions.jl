@@ -38,7 +38,7 @@ function _get_data_for_ramp_limit(
     service::SR,
     contributing_devices::U,
 ) where {
-    SR <: PSY.Reserve{PSY.ReserveUp},
+    SR <: PSY.Reserve,
     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
 } where {D <: PSY.Component}
     time_frame = PSY.get_time_frame(service)
