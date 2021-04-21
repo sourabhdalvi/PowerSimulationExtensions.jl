@@ -43,7 +43,11 @@ function PSI.construct_device!(
     )
 
     # Initial Conditions
-    PSI.initial_conditions!(optimization_container, devices, ThermalInertiaBasicUnitCommitment())
+    PSI.initial_conditions!(
+        optimization_container,
+        devices,
+        ThermalInertiaBasicUnitCommitment(),
+    )
 
     # Constraints
     # TODO: active_power_constraints
@@ -76,7 +80,13 @@ function PSI.construct_device!(
     PSI.feedforward!(optimization_container, devices, model, PSI.get_feedforward(model))
 
     # Cost Function
-    PSI.cost_function!(optimization_container, devices, model, S, PSI.get_feedforward(model))
+    PSI.cost_function!(
+        optimization_container,
+        devices,
+        model,
+        S,
+        PSI.get_feedforward(model),
+    )
 
     return
 end
@@ -123,7 +133,11 @@ function PSI.construct_device!(
     )
 
     # Initial Conditions
-    PSI.initial_conditions!(optimization_container, devices, ThermalInertiaBasicUnitCommitment())
+    PSI.initial_conditions!(
+        optimization_container,
+        devices,
+        ThermalInertiaBasicUnitCommitment(),
+    )
 
     # Constraints
     PSI.add_constraints!(
@@ -145,7 +159,13 @@ function PSI.construct_device!(
     PSI.feedforward!(optimization_container, devices, model, PSI.get_feedforward(model))
 
     # Cost Function
-    PSI.cost_function!(optimization_container, devices, model, S, PSI.get_feedforward(model))
+    PSI.cost_function!(
+        optimization_container,
+        devices,
+        model,
+        S,
+        PSI.get_feedforward(model),
+    )
 
     return
 end
