@@ -94,8 +94,9 @@ function PSI.ramp_constraints!(
         service_upward_rateofchange!(
             optimization_container,
             data,
-            PSI.make_constraint_name(PSI.RATE_LIMIT, SR),
+            PSI.make_constraint_name(RAMP_LIMIT, SR),
             PSI.make_variable_name(service_name, SR),
+            service_name,
         )
     else
         @warn "Data doesn't contain contributing devices with ramp limits for service $service_name, consider adjusting your formulation"
@@ -120,8 +121,9 @@ function PSI.ramp_constraints!(
         service_downward_rateofchange!(
             optimization_container,
             data,
-            PSI.make_constraint_name(PSI.RATE_LIMIT, SR),
+            PSI.make_constraint_name(RAMP_LIMIT, SR),
             PSI.make_variable_name(service_name, SR),
+            service_name,
         )
     else
         @warn "Data doesn't contain contributing devices with ramp limits for service $service_name, consider adjusting your formulation"

@@ -3,9 +3,10 @@ function service_upward_rateofchange!(
     rate_data::Vector{ServiceRampConstraintInfo},
     cons_name::Symbol,
     var_name::Symbol,
+    service_name::AbstractString,
 )
     time_steps = PSI.model_time_steps(optimization_container)
-    up_name = PSI.middle_rename(cons_name, PSI.PSI_NAME_DELIMITER, "up")
+    up_name = PSI.middle_rename(cons_name, PSI.PSI_NAME_DELIMITER, "up"*service_name)
 
     variable = PSI.get_variable(optimization_container, var_name)
 
@@ -28,9 +29,10 @@ function service_downward_rateofchange!(
     rate_data::Vector{ServiceRampConstraintInfo},
     cons_name::Symbol,
     var_name::Symbol,
+    service_name::AbstractString,
 )
     time_steps = PSI.model_time_steps(optimization_container)
-    down_name = PSI.middle_rename(cons_name, PSI.PSI_NAME_DELIMITER, "dn")
+    down_name = PSI.middle_rename(cons_name, PSI.PSI_NAME_DELIMITER, "dn"*service_name)
 
     variable = PSI.get_variable(optimization_container, var_name)
 

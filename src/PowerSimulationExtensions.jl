@@ -44,6 +44,8 @@ include("./service_models/reserves.jl")
 include("./core/feedforward.jl")
 
 include("device_models/devices/thermal_generation.jl")
+
 include("./service_models/services_constructor.jl")
+include("./device_models/device_constructors/thermalgeneration_constructor.jl")
 
 end # module
