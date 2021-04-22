@@ -137,7 +137,7 @@ end
 function fix_binary_variables(binary_variables)
     for (var_name, data_array) in binary_variables
         for var_ref in data_array
-            JuMP.fix(var_ref, abs(JuMP.value(var_ref)); force = true)
+            JuMP.fix(var_ref, abs(round(JuMP.value(var_ref))); force = true)
         end
     end
     return
