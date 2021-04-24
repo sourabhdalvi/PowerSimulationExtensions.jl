@@ -71,7 +71,8 @@ function PSI.write_model_results!(
 
         binary_variables = get_binary_variables(problem)
         fix_binary_variables(binary_variables)
-        undo_relax = JuMP.relax_integrality(optimization_container.JuMPmodel)
+        relax_binary_variables(binary_variables)
+        # undo_relax = JuMP.relax_integrality(optimization_container.JuMPmodel)
 
         PSI.solve!(problem)
         PSI._write_model_dual_results!(
@@ -82,7 +83,8 @@ function PSI.write_model_results!(
             export_params,
         )
         PSI._apply_warm_start!(problem)
-        undo_relax()
+        # undo_relax()
+        reset_binary_variables(binary_variables)
         unfix_binary_variables(binary_variables)
 
         PSI.solve!(problem)

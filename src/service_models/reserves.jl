@@ -14,19 +14,24 @@ PSI.get_variable_upper_bound(
     d::PSY.ThermalGen,
     _,
 ) = _get_inertia(d) * PSY.get_base_power(d)
+PSI.get_variable_upper_bound(
+    ::InertiaServiceVariable,
+    ::PSY.Reserve,
+    d::PSY.RenewableGen,
+    _,
+) = _get_inertia(d) * PSY.get_rating(d)
+PSI.get_variable_upper_bound(::InertiaServiceVariable, ::PSY.Reserve, d::PSY.Storage, _) =
+    _get_inertia(d) * PSY.get_rating(d)
+
 PSI.get_variable_lower_bound(::InertiaServiceVariable, ::PSY.Reserve, ::PSY.Component, _) =
     0.0
 
-function _get_inertia(d::PSY.ThermalGen)
+function _get_inertia(d::PSY.Component)
     if haskey(PSY.get_ext(d), "inertia")
         return PSY.get_ext(d)["inertia"]
     else
         return 0.0
     end
-end
-
-function _get_inertia(d::PSY.Component)
-    return 0.0
 end
 
 _get_ramp_limits(::PSY.Component) = nothing
@@ -209,6 +214,25 @@ function PSI.service_requirement_constraint!(
             optimization_container.JuMPmodel,
             sum(reserve_variable[:, t]) == requirement_variable[name, t]
         )
+    end
+
+    return
+end
+
+function PSI.modify_device_model!(
+    devices_template::Dict{Symbol, PSI.DeviceModel},
+    service_model::PSI.ServiceModel{<:PSY.Reserve, InertiaReserve},
+    contributing_devices::Vector{<:PSY.Device},
+)
+    device_types = unique(typeof.(contributing_devices))
+    for dt in device_types
+        if dt <: PSY.RenewableGen || dt <: PSY.Storage
+            for (device_model_name, device_model) in devices_template
+                PSI.get_component_type(device_model) != dt && continue
+                service_model in device_model.services && continue
+                push!(device_model.services, service_model)
+            end
+        end
     end
 
     return

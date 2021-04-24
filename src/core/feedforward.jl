@@ -181,7 +181,7 @@ function PSI.feedforward!(
     )
 end
 
-function feedforward!(
+function PSI.feedforward!(
     optimization_container::PSI.OptimizationContainer,
     devices::IS.FlattenIteratorWrapper{T},
     ::PSI.DeviceModel{T, D},
