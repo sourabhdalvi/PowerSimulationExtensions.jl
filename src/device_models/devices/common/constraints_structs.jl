@@ -5,15 +5,52 @@ struct ServiceRampConstraintInfo <: PSI.AbstractRampConstraintInfo
     ramp_limits::PSI.UpDown
 end
 
-struct InertiaServiceConstraintInfo <: AbstractServiceConstraintInfo
+struct InertiaServiceConstraintInfo <: PSI.AbstractRangeConstraintInfo
     component_name::String
-    inertia::Float64
-    base_power::Float64
+    h_constant::Float64
+    limit::Float64
+    additional_terms_ub::Vector{Symbol}
+    additional_terms_lb::Vector{Symbol}
+end
+
+function InertiaServiceConstraintInfo(name::String, h_constant::Float64, limit::Float64)
+    return InertiaServiceConstraintInfo(
+        name,
+        h_constant,
+        limit,
+        Vector{Symbol}(),
+        Vector{Symbol}(),
+    )
+end
+
+struct InertiaServiceRenewableConstraintInfo <: PSI.AbstractRangeConstraintInfo
+    component_name::String
+    h_constant::Float64
+    multiplier::Float64
+    timeseries::Vector{Float64}
+    additional_terms_ub::Vector{Symbol}
+    additional_terms_lb::Vector{Symbol}
+end
+
+function InertiaServiceRenewableConstraintInfo(
+    name::String,
+    h_constant::Float64,
+    multiplier::Float64,
+    timeseries::Vector{Float64},
+)
+    return InertiaServiceRenewableConstraintInfo(
+        name,
+        h_constant,
+        multiplier,
+        timeseries,
+        Vector{Symbol}(),
+        Vector{Symbol}(),
+    )
 end
 
 struct InertiaCommitmentConstraintInfo <: AbstractServiceConstraintInfo
     component_name::String
     ic_power::PSI.InitialCondition
-    inertia::Float64
+    h_constant::Float64
     base_power::Float64
 end
