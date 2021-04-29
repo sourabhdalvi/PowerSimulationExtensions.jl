@@ -48,9 +48,9 @@ function renewable_device_inertia_param!(
         varstart_names,
         time_steps,
     )
-    container = PSI.get_parameter_container(optimization_container, param_reference)
+    container = PSI.get_parameter_container(optimization_container, paramerter_ref)
     param_ub = PSI.get_parameter_array(container)
-    multiplier = get_multiplier_array(container)
+    multiplier = PSI.get_multiplier_array(container)
 
     for t in time_steps, d in data
         name = PSI.get_component_name(d)

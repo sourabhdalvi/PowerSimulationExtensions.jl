@@ -242,7 +242,15 @@ function PSI.include_service!(
     constraint_info::T,
     services,
     ::PSI.ServiceModel{SR, <:ResponseReserve},
-) where {T <: PSI.AbstractRampConstraintInfo, SR <: PSY.Reserve}
+) where {T <: PSI.AbstractRampConstraintInfo, SR <: PSY.Reserve{PSY.ReserveUp}}
+    return
+end
+
+function PSI.include_service!(
+    constraint_info::T,
+    services,
+    ::PSI.ServiceModel{SR, <:ResponseReserve},
+) where {T <: PSI.AbstractRampConstraintInfo, SR <: PSY.Reserve{PSY.ReserveDown}}
     return
 end
 
