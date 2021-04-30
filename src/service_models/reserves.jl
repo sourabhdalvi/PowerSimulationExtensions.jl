@@ -82,59 +82,59 @@ function _get_data_for_ramp_limit(
     return data
 end
 
-function PSI.ramp_constraints!(
-    optimization_container::PSI.OptimizationContainer,
-    service::SR,
-    contributing_devices::U,
-    ::PSI.ServiceModel{SR, T},
-) where {
-    SR <: PSY.Reserve{PSY.ReserveUp},
-    T <: PSI.AbstractReservesFormulation,
-    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
-} where {D <: PSY.Component}
-    initial_time = PSI.model_initial_time(optimization_container)
-    data = _get_data_for_ramp_limit(optimization_container, service, contributing_devices)
-    service_name = PSY.get_name(service)
-    if !isempty(data)
-        service_upward_rateofchange!(
-            optimization_container,
-            data,
-            PSI.make_constraint_name(RAMP_LIMIT, SR),
-            PSI.make_variable_name(service_name, SR),
-            service_name,
-        )
-    else
-        @warn "Data doesn't contain contributing devices with ramp limits for service $service_name, consider adjusting your formulation"
-    end
-    return
-end
+# function PSI.ramp_constraints!(
+#     optimization_container::PSI.OptimizationContainer,
+#     service::SR,
+#     contributing_devices::U,
+#     ::PSI.ServiceModel{SR, T},
+# ) where {
+#     SR <: PSY.Reserve{PSY.ReserveUp},
+#     T <: PSI.AbstractReservesFormulation,
+#     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+# } where {D <: PSY.Component}
+#     initial_time = PSI.model_initial_time(optimization_container)
+#     data = _get_data_for_ramp_limit(optimization_container, service, contributing_devices)
+#     service_name = PSY.get_name(service)
+#     if !isempty(data)
+#         service_upward_rateofchange!(
+#             optimization_container,
+#             data,
+#             PSI.make_constraint_name(RAMP_LIMIT, SR),
+#             PSI.make_variable_name(service_name, SR),
+#             service_name,
+#         )
+#     else
+#         @warn "Data doesn't contain contributing devices with ramp limits for service $service_name, consider adjusting your formulation"
+#     end
+#     return
+# end
 
-function PSI.ramp_constraints!(
-    optimization_container::PSI.OptimizationContainer,
-    service::SR,
-    contributing_devices::U,
-    ::PSI.ServiceModel{SR, T},
-) where {
-    SR <: PSY.Reserve{PSY.ReserveDown},
-    T <: PSI.AbstractReservesFormulation,
-    U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
-} where {D <: PSY.Component}
-    initial_time = PSI.model_initial_time(optimization_container)
-    data = _get_data_for_ramp_limit(optimization_container, service, contributing_devices)
-    service_name = PSY.get_name(service)
-    if !isempty(data)
-        service_downward_rateofchange!(
-            optimization_container,
-            data,
-            PSI.make_constraint_name(RAMP_LIMIT, SR),
-            PSI.make_variable_name(service_name, SR),
-            service_name,
-        )
-    else
-        @warn "Data doesn't contain contributing devices with ramp limits for service $service_name, consider adjusting your formulation"
-    end
-    return
-end
+# function PSI.ramp_constraints!(
+#     optimization_container::PSI.OptimizationContainer,
+#     service::SR,
+#     contributing_devices::U,
+#     ::PSI.ServiceModel{SR, T},
+# ) where {
+#     SR <: PSY.Reserve{PSY.ReserveDown},
+#     T <: PSI.AbstractReservesFormulation,
+#     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
+# } where {D <: PSY.Component}
+#     initial_time = PSI.model_initial_time(optimization_container)
+#     data = _get_data_for_ramp_limit(optimization_container, service, contributing_devices)
+#     service_name = PSY.get_name(service)
+#     if !isempty(data)
+#         service_downward_rateofchange!(
+#             optimization_container,
+#             data,
+#             PSI.make_constraint_name(RAMP_LIMIT, SR),
+#             PSI.make_variable_name(service_name, SR),
+#             service_name,
+#         )
+#     else
+#         @warn "Data doesn't contain contributing devices with ramp limits for service $service_name, consider adjusting your formulation"
+#     end
+#     return
+# end
 
 function PSI.service_requirement_constraint!(
     optimization_container::PSI.OptimizationContainer,
