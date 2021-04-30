@@ -1,5 +1,7 @@
 struct BookKeepingwInertia <: PSI.AbstractStorageFormulation end
 
+PSI.get_variable_upper_bound(::PSI.EnergyVariable, d::PSY.Storage, ::PSI.AbstractStorageFormulation) = PSY.get_rating(d)
+
 function inertia_constraints!(
     optimization_container::PSI.OptimizationContainer,
     devices::IS.FlattenIteratorWrapper{T},
