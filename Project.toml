@@ -1,7 +1,7 @@
 name = "PowerSimulationExtensions"
 uuid = "ac96b9b5-1dbd-4cb5-a6ab-1ccb89c796af"
 authors = ["sourabhdalvi <sourabh.p.dalvi@gmail.com>"]
-version = "0.1.2"
+version = "0.1.3"
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
