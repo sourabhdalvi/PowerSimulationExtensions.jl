@@ -109,3 +109,27 @@ function storage_device_inertia!(
     end
     return
 end
+
+function hydro_device_inertia!(
+    optimization_container::PSI.OptimizationContainer,
+    data::Vector{InertiaCommitmentConstraintInfo},
+    cons_name::Symbol,
+    var_name::Symbol,
+    service_name::Symbol,
+)
+    time_steps = PSI.model_time_steps(optimization_container)
+    var = PSI.get_variable(optimization_container, var_name)
+    var_service = PSI.get_variable(optimization_container, service_name)
+    var_names = axes(var, 1)
+    constraint =
+        PSI.add_cons_container!(optimization_container, cons_name, var_names, time_steps)
+
+    for t in time_steps, d in data
+        name = PSI.get_component_name(d)
+        constraint[name, t] = JuMP.@constraint(
+            optimization_container.JuMPmodel,
+            var_service[name, t] == var[name, t] * d.h_constant * d.base_power
+        )
+    end
+    return
+end

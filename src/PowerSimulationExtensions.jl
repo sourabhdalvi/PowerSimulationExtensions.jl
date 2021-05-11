@@ -2,16 +2,25 @@ module PowerSimulationExtensions
 
 #################################################################################
 # Exports
+# OperationProblem
 export MILPDualProblem
+
+# Service Formulations
 export RampReserve
 export QuadraticCostRampReserve
 export InertiaReserve
+
+# Device Formulations
 export ThermalInertiaBasicUnitCommitment
 export ThermalInertiaStandardUnitCommitment
-export InertiaFF
-export EnergyTargetFF
+export HydroInertiaCommitmentRunOfRiver
 export BookKeepingwInertia
 export RenewableFullDispatchInertia
+
+#FeedForwards
+export InertiaFF
+export EnergyTargetFF
+export ReserveSemiContinuousFF
 
 #################################################################################
 # Imports
@@ -49,10 +58,12 @@ include("./core/feedforward.jl")
 include("device_models/devices/thermal_generation.jl")
 include("device_models/devices/renewable_generation.jl")
 include("device_models/devices/storage.jl")
+include("device_models/devices/hydro_generation.jl")
 
 include("./service_models/services_constructor.jl")
 include("./device_models/device_constructors/thermalgeneration_constructor.jl")
 include("./device_models/device_constructors/renewablegeneration_constructor.jl")
 include("./device_models/device_constructors/storage_constructor.jl")
+include("./device_models/device_constructors/hydrogeneration_constructor.jl")
 
 end # module
