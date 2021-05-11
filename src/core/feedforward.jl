@@ -57,7 +57,26 @@ function EnergyTargetFF(;
     )
 end
 
-get_variable_source_problem(p::EnergyTargetFF) = p.variable_source_problem
+PSI.get_variable_source_problem(p::EnergyTargetFF) = p.variable_source_problem
+
+struct ReserveSemiContinuousFF <: PSI.AbstractAffectFeedForward
+    binary_source_problem::Symbol
+    affected_variables::Vector{Symbol}
+    cache::Union{Nothing, Type{<:PSI.AbstractCache}}
+    function ReserveSemiContinuousFF(
+        binary_source_problem::AbstractString,
+        affected_variables::Vector{<:AbstractString},
+        cache::Union{Nothing, Type{<:PSI.AbstractCache}},
+    )
+        new(Symbol(binary_source_problem), Symbol.(affected_variables), cache)
+    end
+end
+
+function ReserveSemiContinuousFF(; binary_source_problem, affected_variables)
+    return ReserveSemiContinuousFF(binary_source_problem, affected_variables, nothing)
+end
+
+PSI.get_binary_source_problem(p::ReserveSemiContinuousFF) = p.binary_source_problem
 
 ####################### Feed Forward Affects ###############################################
 @doc raw"""
@@ -77,16 +96,16 @@ function inertia_ff(
     set_name = axes[1]
     @assert axes[2] == time_steps
     container = PSI.get_parameter_container(optimization_container, param_reference)
-    param_ub = PSI.get_parameter_array(container)
+    param_on = PSI.get_parameter_array(container)
     con_ub =
         PSI.add_cons_container!(optimization_container, cons_name, set_name, time_steps)
 
-    for constraint_info in constraint_infos
-        name = PSI.get_component_name(constraint_info)
+    for d in constraint_infos
+        name = PSI.get_component_name(d)
         for t in time_steps
             con_ub[name, t] = JuMP.@constraint(
                 optimization_container.JuMPmodel,
-                variable[name, t] <= param_ub[name] * PSI.M_VALUE
+                variable[name, t] <= param_on[name] * (d.inertia * d.base_power)
             )
         end
     end
@@ -135,6 +154,75 @@ function energy_target_ff(
             target_period,
         )
     end
+end
+
+function reserve_semicontinuousrange_ff(
+    optimization_container::PSI.OptimizationContainer,
+    cons_name::Symbol,
+    constraint_infos::Vector{PSI.DeviceRangeConstraintInfo},
+    param_reference::PSI.UpdateRef,
+    var_name::Symbol,
+)
+    time_steps = PSI.model_time_steps(optimization_container)
+    ub_name = PSI.middle_rename(cons_name, PSI.PSI_NAME_DELIMITER, "ub")
+    lb_name = PSI.middle_rename(cons_name, PSI.PSI_NAME_DELIMITER, "lb")
+    variable = PSI.get_variable(optimization_container, var_name)
+    # Used to make sure the names are consistent between the variable and the infos
+    axes = JuMP.axes(variable)
+    set_name = [PSI.get_component_name(ci) for ci in constraint_infos]
+    @assert axes[2] == time_steps
+    container = PSI.add_param_container!(optimization_container, param_reference, set_name)
+    multiplier = PSI.get_multiplier_array(container)
+    param = PSI.get_parameter_array(container)
+    con_ub = PSI.add_cons_container!(optimization_container, ub_name, set_name, time_steps)
+    con_lb = PSI.add_cons_container!(optimization_container, lb_name, set_name, time_steps)
+
+    for constraint_info in constraint_infos
+        name = PSI.get_component_name(constraint_info)
+        ub_value = JuMP.upper_bound(variable[name, 1])
+        lb_value = JuMP.lower_bound(variable[name, 1])
+        @debug "ReserveSemiContinuousFF" name ub_value lb_value
+        # default set to 1.0, as this implementation doesn't use multiplier
+        multiplier[name] = 1.0
+        param[name] = PSI.add_parameter(optimization_container.JuMPmodel, 1.0)
+        for t in time_steps
+            expression_ub = JuMP.AffExpr(0.0, variable[name, t] => 1.0)
+            for val in constraint_info.additional_terms_ub
+                JuMP.add_to_expression!(
+                    expression_ub,
+                    PSI.get_variable(optimization_container, val)[name, t],
+                )
+            end
+            expression_lb = JuMP.AffExpr(0.0, variable[name, t] => 1.0)
+            for val in constraint_info.additional_terms_lb
+                JuMP.add_to_expression!(
+                    expression_lb,
+                    PSI.get_variable(optimization_container, val)[name, t],
+                    -1.0,
+                )
+            end
+            mul_ub = ub_value * multiplier[name]
+            mul_lb = lb_value * multiplier[name]
+            con_ub[name, t] = JuMP.@constraint(
+                optimization_container.JuMPmodel,
+                expression_ub <= mul_ub * (1 - param[name])
+            )
+            con_lb[name, t] = JuMP.@constraint(
+                optimization_container.JuMPmodel,
+                expression_lb >= mul_lb * (1 - param[name])
+            )
+        end
+    end
+
+    # If the variable was a lower bound != 0, not removing the LB can cause infeasibilities
+    for v in variable
+        if JuMP.has_lower_bound(v)
+            @debug "lb reset" v
+            JuMP.set_lower_bound(v, 0.0)
+        end
+    end
+
+    return
 end
 
 ########################## FeedForward Constraints #########################################
@@ -199,6 +287,34 @@ function PSI.feedforward!(
             (var_name, varslack_name),
             ff_model.target_period,
             ff_model.penalty_cost,
+        )
+    end
+end
+
+function PSI.feedforward!(
+    optimization_container::PSI.OptimizationContainer,
+    devices::IS.FlattenIteratorWrapper{T},
+    model::PSI.DeviceModel{T, <:PSI.AbstractDeviceFormulation},
+    ff_model::ReserveSemiContinuousFF,
+) where {T <: PSY.StaticInjection}
+    bin_var = PSI.make_variable_name(PSI.get_binary_source_problem(ff_model), T)
+    parameter_ref = PSI.UpdateRef{JuMP.VariableRef}(bin_var)
+    constraint_infos = Vector{PSI.DeviceRangeConstraintInfo}(undef, length(devices))
+    for (ix, d) in enumerate(devices)
+        name = PSY.get_name(d)
+        limits = PSY.get_input_active_power_limits(d)
+        constraint_info = PSI.DeviceRangeConstraintInfo(name, limits)
+        PSI.add_device_services!(constraint_info, d, model)
+        constraint_infos[ix] = constraint_info
+    end
+    for prefix in PSI.get_affected_variables(ff_model)
+        var_name = PSI.make_variable_name(prefix, T)
+        reserve_semicontinuousrange_ff(
+            optimization_container,
+            PSI.make_constraint_name(FEEDFORWARD_RESERVE_BIN, T),
+            constraint_infos,
+            parameter_ref,
+            var_name,
         )
     end
 end

@@ -50,7 +50,7 @@ end
 
 struct InertiaCommitmentConstraintInfo <: AbstractServiceConstraintInfo
     component_name::String
-    ic_power::PSI.InitialCondition
+    ic_power::Union{Nothing, PSI.InitialCondition}
     h_constant::Float64
     base_power::Float64
 end
