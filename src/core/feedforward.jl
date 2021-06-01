@@ -105,7 +105,7 @@ function inertia_ff(
         for t in time_steps
             con_ub[name, t] = JuMP.@constraint(
                 optimization_container.JuMPmodel,
-                variable[name, t] <= param_on[name] * (d.inertia * d.base_power)
+                variable[name, t] <= param_on[name] * (d.h_constant * d.base_power)
             )
         end
     end
