@@ -22,7 +22,8 @@ PSI.get_variable_upper_bound(
 ) = _get_inertia(d) * PSY.get_rating(d)
 PSI.get_variable_upper_bound(::InertiaServiceVariable, ::PSY.Reserve, d::PSY.Storage, _) =
     _get_inertia(d) * PSY.get_rating(d)
-
+PSI.get_variable_upper_bound(::InertiaServiceVariable, ::PSY.Reserve, d::PSY.HydroGen, _) =
+    _get_inertia(d) * PSY.base_power(d)
 PSI.get_variable_lower_bound(::InertiaServiceVariable, ::PSY.Reserve, ::PSY.Component, _) =
     0.0
 
