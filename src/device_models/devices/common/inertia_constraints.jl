@@ -99,7 +99,7 @@ function storage_device_inertia!(
 
         power_bound[name, t] = JuMP.@constraint(
             optimization_container.JuMPmodel,
-            var_service[name, t] == d.h_constant * (d.limit - expression_ub)
+            var_service[name, t] == d.h_constant * (d.base_power - expression_ub)
         )
 
         energy_bound[name, t] = JuMP.@constraint(

@@ -13,13 +13,15 @@ function PSI.ProblemResults(problem::PSI.OperationsProblem{MILPDualProblem})
     PSI._apply_warm_start!(problem)
     binary_variables = get_binary_variables(problem)
     fix_binary_variables(binary_variables)
-    undo_relax = JuMP.relax_integrality(container.JuMPmodel)
+    relax_binary_variables(binary_variables)
+    # undo_relax = JuMP.relax_integrality(container.JuMPmodel)
 
     PSI.solve!(problem)
     duals = PSI.read_duals(PSI.get_optimization_container(problem))
     PSI._apply_warm_start!(problem)
 
-    undo_relax()
+    # undo_relax()
+    reset_binary_variables(binary_variables)
     unfix_binary_variables(binary_variables)
     PSI.solve!(problem)
 
@@ -72,7 +74,7 @@ function PSI.write_model_results!(
         binary_variables = get_binary_variables(problem)
         fix_binary_variables(binary_variables)
         relax_binary_variables(binary_variables)
-        # undo_relax = JuMP.relax_integrality(optimization_container.JuMPmodel)
+        
 
         PSI.solve!(problem)
         PSI._write_model_dual_results!(
@@ -83,7 +85,6 @@ function PSI.write_model_results!(
             export_params,
         )
         PSI._apply_warm_start!(problem)
-        # undo_relax()
         reset_binary_variables(binary_variables)
         unfix_binary_variables(binary_variables)
 
@@ -139,7 +140,7 @@ end
 function fix_binary_variables(binary_variables)
     for (var_name, data_array) in binary_variables
         for var_ref in data_array
-            JuMP.fix(var_ref, abs(round(JuMP.value(var_ref))); force = true)
+            JuMP.fix(var_ref, abs(round(JuMP.value(var_ref))); force=true)
         end
     end
     return

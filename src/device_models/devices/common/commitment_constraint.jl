@@ -44,7 +44,7 @@ function device_commitment_inertia!(
         )
         service_constraint[name, 1] = JuMP.@constraint(
             optimization_container.JuMPmodel,
-            var_service[name, 1] == varon[name, 1] * (d.inertia * d.base_power)
+            var_service[name, 1] == varon[name, 1] * (d.h_constant * d.base_power)
         )
     end
 
@@ -60,7 +60,7 @@ function device_commitment_inertia!(
         )
         service_constraint[name, t] = JuMP.@constraint(
             optimization_container.JuMPmodel,
-            var_service[name, t] == varon[name, t] * (d.inertia * d.base_power)
+            var_service[name, t] == varon[name, t] * (d.h_constant * d.base_power)
         )
     end
     return
