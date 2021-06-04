@@ -1,9 +1,17 @@
+"""
+Construct model for HydroGen with RunOfRiver Commitment Formulation
+with only Active Power.
+"""
 function PSI.construct_device!(
     optimization_container::PSI.OptimizationContainer,
     sys::PSY.System,
     model::PSI.DeviceModel{H, D},
     ::Type{S},
-) where {H <: PSY.HydroGen, D <: AbstractInertiaUnitCommitment, S <: PM.AbstractPowerModel}
+) where {
+    H <: PSY.HydroGen,
+    D <: HydroInertiaCommitmentRunOfRiver,
+    S <: PM.AbstractActivePowerModel,
+}
     devices = PSI.get_available_components(H, sys)
 
     if !PSI.validate_available_devices(H, devices)
@@ -12,7 +20,6 @@ function PSI.construct_device!(
 
     # Variables
     PSI.add_variables!(optimization_container, PSI.ActivePowerVariable, devices, D())
-    PSI.add_variables!(optimization_container, PSI.ReactivePowerVariable, devices, D())
     PSI.add_variables!(optimization_container, PSI.OnVariable, devices, D())
 
     # Constraints
@@ -20,15 +27,6 @@ function PSI.construct_device!(
         optimization_container,
         PSI.RangeConstraint,
         PSI.ActivePowerVariable,
-        devices,
-        model,
-        S,
-        PSI.get_feedforward(model),
-    )
-    PSI.add_constraints!(
-        optimization_container,
-        PSI.RangeConstraint,
-        PSI.ReactivePowerVariable,
         devices,
         model,
         S,
@@ -55,20 +53,13 @@ function PSI.construct_device!(
     return
 end
 
-"""
-Construct model for HydroGen with RunOfRiver Commitment Formulation
-with only Active Power.
-"""
-function construct_device!(
+
+function PSI.construct_device!(
     optimization_container::PSI.OptimizationContainer,
     sys::PSY.System,
     model::PSI.DeviceModel{H, D},
     ::Type{S},
-) where {
-    H <: PSY.HydroGen,
-    D <: AbstractInertiaUnitCommitment,
-    S <: PM.AbstractActivePowerModel,
-}
+) where {H <: PSY.HydroGen, D <: HydroInertiaCommitmentRunOfRiver, S <: PM.AbstractPowerModel}
     devices = PSI.get_available_components(H, sys)
 
     if !PSI.validate_available_devices(H, devices)
@@ -77,6 +68,7 @@ function construct_device!(
 
     # Variables
     PSI.add_variables!(optimization_container, PSI.ActivePowerVariable, devices, D())
+    PSI.add_variables!(optimization_container, PSI.ReactivePowerVariable, devices, D())
     PSI.add_variables!(optimization_container, PSI.OnVariable, devices, D())
 
     # Constraints
@@ -84,6 +76,15 @@ function construct_device!(
         optimization_container,
         PSI.RangeConstraint,
         PSI.ActivePowerVariable,
+        devices,
+        model,
+        S,
+        PSI.get_feedforward(model),
+    )
+    PSI.add_constraints!(
+        optimization_container,
+        PSI.RangeConstraint,
+        PSI.ReactivePowerVariable,
         devices,
         model,
         S,

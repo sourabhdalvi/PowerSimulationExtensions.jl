@@ -8,16 +8,16 @@ end
 struct InertiaServiceConstraintInfo <: PSI.AbstractRangeConstraintInfo
     component_name::String
     h_constant::Float64
-    limit::Float64
+    base_power::Float64
     additional_terms_ub::Vector{Symbol}
     additional_terms_lb::Vector{Symbol}
 end
 
-function InertiaServiceConstraintInfo(name::String, h_constant::Float64, limit::Float64)
+function InertiaServiceConstraintInfo(name::String, h_constant::Float64, base_power::Float64)
     return InertiaServiceConstraintInfo(
         name,
         h_constant,
-        limit,
+        base_power,
         Vector{Symbol}(),
         Vector{Symbol}(),
     )

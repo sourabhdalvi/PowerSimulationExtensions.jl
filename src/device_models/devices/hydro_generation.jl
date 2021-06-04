@@ -1,6 +1,28 @@
 abstract type AbstractInertiaUnitCommitment <: PSI.AbstractHydroUnitCommitment end
 struct HydroInertiaCommitmentRunOfRiver <: AbstractInertiaUnitCommitment end
 
+function PSI.DeviceRangeConstraintSpec(
+    ::Type{<:PSI.RangeConstraint},
+    ::Type{PSI.ActivePowerVariable},
+    ::Type{T},
+    ::Type{<:AbstractInertiaUnitCommitment},
+    ::Type{<:PM.AbstractPowerModel},
+    feedforward::InertiaFF,
+    use_parameters::Bool,
+    use_forecasts::Bool,
+) where {T <: PSY.HydroGen}
+    return PSI.DeviceRangeConstraintSpec(;
+        range_constraint_spec = PSI.RangeConstraintSpec(;
+            constraint_name = PSI.make_constraint_name(PSI.RangeConstraint, PSI.ActivePowerVariable, T),
+            variable_name = PSI.make_variable_name(PSI.ActivePowerVariable, T),
+            bin_variable_names = [PSI.make_variable_name(PSI.OnVariable, T)],
+            limits_func = x -> PSY.get_active_power_limits(x),
+            constraint_func = PSI.device_semicontinuousrange!,
+            constraint_struct = PSI.DeviceRangeConstraintInfo,
+        ),
+    )
+end
+
 function inertia_constraints!(
     optimization_container::PSI.OptimizationContainer,
     devices::IS.FlattenIteratorWrapper{T},
@@ -14,7 +36,7 @@ function inertia_constraints!(
 
         time_steps = PSI.model_time_steps(optimization_container)
         use_parameters = PSI.model_has_parameters(optimization_container)
-        constraint_info = Vector{InertiaServiceConstraintInfo}(undef, length(devices))
+        constraint_info = Vector{InertiaCommitmentConstraintInfo}(undef, length(devices))
         for (idx, d) in enumerate(devices)
             constraint_info[idx] = InertiaCommitmentConstraintInfo(
                 PSY.get_name(d),
