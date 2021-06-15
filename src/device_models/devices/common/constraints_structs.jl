@@ -36,13 +36,14 @@ function InertiaServiceRenewableConstraintInfo(
     name::String,
     h_constant::Float64,
     multiplier::Float64,
-    timeseries::Vector{Float64},
+    timeseries,
 )
+    ts::Vector{Float64} = timeseries
     return InertiaServiceRenewableConstraintInfo(
         name,
         h_constant,
         multiplier,
-        timeseries,
+        ts,
         Vector{Symbol}(),
         Vector{Symbol}(),
     )
