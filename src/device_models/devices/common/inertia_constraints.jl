@@ -18,7 +18,7 @@ function renewable_device_inertia!(
         for val in d.additional_terms_ub
             JuMP.add_to_expression!(
                 expression_ub,
-                get_variable(optimization_container, val)[name, t],
+                PSI.get_variable(optimization_container, val)[name, t],
             )
         end
         constraint[name, t] = JuMP.@constraint(
@@ -58,7 +58,7 @@ function renewable_device_inertia_param!(
         for val in d.additional_terms_ub
             JuMP.add_to_expression!(
                 expression_ub,
-                get_variable(optimization_container, val)[name, t],
+                PSI.get_variable(optimization_container, val)[name, t],
             )
         end
         constraint[name, t] = JuMP.@constraint(
@@ -93,7 +93,7 @@ function storage_device_inertia!(
         for val in d.additional_terms_ub
             JuMP.add_to_expression!(
                 expression_ub,
-                get_variable(optimization_container, val)[name, t],
+                PSI.get_variable(optimization_container, val)[name, t],
             )
         end
 

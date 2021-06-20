@@ -52,6 +52,7 @@ include("device_models/devices/common/commitment_constraint.jl")
 include("device_models/devices/common/inertia_constraints.jl")
 
 include("./core/operations_problem.jl")
+include("./core/optimization_container.jl")
 include("./service_models/reserves.jl")
 include("./core/feedforward.jl")
 
