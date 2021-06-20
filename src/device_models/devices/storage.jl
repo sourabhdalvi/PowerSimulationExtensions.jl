@@ -3,27 +3,27 @@ struct SimpleBatteryDispatch <: PSI.AbstractStorageFormulation end
 struct RelaxedBatteryDispatch <: PSI.AbstractStorageFormulation end
 
 ########################### ActivePowerVariable, Storage #################################
-get_variable_binary(
-    ::ActivePowerVariable,
+PSI.get_variable_binary(
+    ::PSI.ActivePowerVariable,
     ::Type{<:PSY.Storage},
-    ::AbstractStorageFormulation,
+    ::PSI.AbstractStorageFormulation,
 ) = false
-get_variable_expression_name(::ActivePowerVariable, ::Type{<:PSY.Storage}) =
+PSI.get_variable_expression_name(::PSI.ActivePowerVariable, ::Type{<:PSY.Storage}) =
     :nodal_balance_active
-get_variable_upper_bound(
-    ::ActivePowerVariable,
+PSI.get_variable_upper_bound(
+    ::PSI.ActivePowerVariable,
     d::PSY.Storage,
-    ::AbstractStorageFormulation,
+    ::PSI.AbstractStorageFormulation,
 ) = PSY.get_output_active_power_limits(d).max
-get_variable_lower_bound(
-    ::ActivePowerVariable,
+PSI.get_variable_lower_bound(
+    ::PSI.ActivePowerVariable,
     d::PSY.Storage,
-    ::AbstractStorageFormulation,
+    ::PSI.AbstractStorageFormulation,
 ) = -1 * PSY.get_input_active_power_limits(d).max
-get_variable_sign(
-    ::ActivePowerVariable,
+PSI.get_variable_sign(
+    ::PSI.ActivePowerVariable,
     d::Type{<:PSY.Storage},
-    ::AbstractStorageFormulation,
+    ::PSI.AbstractStorageFormulation,
 ) = 1.0
 
 PSI.get_variable_upper_bound(
@@ -32,22 +32,47 @@ PSI.get_variable_upper_bound(
     ::PSI.AbstractStorageFormulation,
 ) = PSY.get_rating(d)
 
-function DeviceEnergyBalanceConstraintSpec(
-    ::Type{<:EnergyBalanceConstraint},
-    ::Type{EnergyVariable},
+function PSI.DeviceRangeConstraintSpec(
+    ::Type{<:PSI.RangeConstraint},
+    ::Type{PSI.ActivePowerVariable},
+    ::Type{T},
+    ::Type{SimpleBatteryDispatch},
+    ::Type{<:PM.AbstractPowerModel},
+    feedforward::Union{Nothing, PSI.AbstractAffectFeedForward},
+    use_parameters::Bool,
+    use_forecasts::Bool,
+) where {T <: PSY.Storage}
+    return PSI.DeviceRangeConstraintSpec(;
+        range_constraint_spec = PSI.RangeConstraintSpec(;
+            constraint_name = PSI.make_constraint_name(
+                PSI.RangeConstraint,
+                PSI.ActivePowerOutVariable,
+                T,
+            ),
+            variable_name = PSI.make_variable_name(PSI.ActivePowerVariable, T),
+            limits_func = x -> PSY.get_output_active_power_limits(x),
+            constraint_func = PSI.device_range!,
+            constraint_struct = PSI.DeviceRangeConstraintInfo,
+        ),
+    )
+end
+
+function PSI.DeviceEnergyBalanceConstraintSpec(
+    ::Type{<:PSI.EnergyBalanceConstraint},
+    ::Type{PSI.EnergyVariable},
     ::Type{St},
     ::Type{SimpleBatteryDispatch},
     ::Type{<:PM.AbstractPowerModel},
-    feedforward::Union{Nothing, AbstractAffectFeedForward},
+    feedforward::Union{Nothing, PSI.AbstractAffectFeedForward},
     use_parameters::Bool,
     use_forecasts::Bool,
 ) where {St <: PSY.Storage}
-    return DeviceEnergyBalanceConstraintSpec(;
-        constraint_name = make_constraint_name(ENERGY_LIMIT, St),
-        energy_variable = make_variable_name(ENERGY, St),
-        initial_condition = InitialEnergyLevel,
-        pout_variable_names = [make_variable_name(ACTIVE_POWER, St)],
-        constraint_func = energy_balance!,
+    return PSI.DeviceEnergyBalanceConstraintSpec(;
+        constraint_name = PSI.make_constraint_name(PSI.ENERGY_LIMIT, St),
+        energy_variable = PSI.make_variable_name(PSI.ENERGY, St),
+        initial_condition = PSI.InitialEnergyLevel,
+        pout_variable_names = [PSI.make_variable_name(PSI.ACTIVE_POWER, St)],
+        constraint_func = PSI.energy_balance!,
     )
 end
 

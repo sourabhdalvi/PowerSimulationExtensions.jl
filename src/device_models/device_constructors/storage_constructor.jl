@@ -286,13 +286,7 @@ function PSI.construct_device!(
     # Variables
     PSI.add_variables!(
         optimization_container,
-        PSI.ActivePowerInVariable,
-        devices,
-        SimpleBatteryDispatch(),
-    )
-    PSI.add_variables!(
-        optimization_container,
-        PSI.ActivePowerOutVariable,
+        PSI.ActivePowerVariable,
         devices,
         SimpleBatteryDispatch(),
     )
@@ -302,12 +296,6 @@ function PSI.construct_device!(
         devices,
         BookKeepingwInertia(),
     )
-    PSI.add_variables!(
-        optimization_container,
-        PSI.ReserveVariable,
-        devices,
-        SimpleBatteryDispatch(),
-    )
 
     # Initial Conditions
     PSI.initial_conditions!(optimization_container, devices, SimpleBatteryDispatch())
@@ -316,29 +304,13 @@ function PSI.construct_device!(
     PSI.add_constraints!(
         optimization_container,
         PSI.RangeConstraint,
-        PSI.ActivePowerOutVariable,
-        devices,
-        model,
-        S,
-        PSI.get_feedforward(model),
-    )
-    PSI.add_constraints!(
-        optimization_container,
-        PSI.RangeConstraint,
-        PSI.ActivePowerInVariable,
+        PSI.ActivePowerVariable,
         devices,
         model,
         S,
         PSI.get_feedforward(model),
     )
     PSI.energy_capacity_constraints!(
-        optimization_container,
-        devices,
-        model,
-        S,
-        PSI.get_feedforward(model),
-    )
-    inertia_constraints!(
         optimization_container,
         devices,
         model,
