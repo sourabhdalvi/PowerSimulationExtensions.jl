@@ -53,13 +53,16 @@ function PSI.construct_device!(
     return
 end
 
-
 function PSI.construct_device!(
     optimization_container::PSI.OptimizationContainer,
     sys::PSY.System,
     model::PSI.DeviceModel{H, D},
     ::Type{S},
-) where {H <: PSY.HydroGen, D <: HydroInertiaCommitmentRunOfRiver, S <: PM.AbstractPowerModel}
+) where {
+    H <: PSY.HydroGen,
+    D <: HydroInertiaCommitmentRunOfRiver,
+    S <: PM.AbstractPowerModel,
+}
     devices = PSI.get_available_components(H, sys)
 
     if !PSI.validate_available_devices(H, devices)

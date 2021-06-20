@@ -1,10 +1,55 @@
 struct BookKeepingwInertia <: PSI.AbstractStorageFormulation end
+struct SimpleBatteryDispatch <: PSI.AbstractStorageFormulation end
+struct RelaxedBatteryDispatch <: PSI.AbstractStorageFormulation end
+
+########################### ActivePowerVariable, Storage #################################
+get_variable_binary(
+    ::ActivePowerVariable,
+    ::Type{<:PSY.Storage},
+    ::AbstractStorageFormulation,
+) = false
+get_variable_expression_name(::ActivePowerVariable, ::Type{<:PSY.Storage}) =
+    :nodal_balance_active
+get_variable_upper_bound(
+    ::ActivePowerVariable,
+    d::PSY.Storage,
+    ::AbstractStorageFormulation,
+) = PSY.get_output_active_power_limits(d).max
+get_variable_lower_bound(
+    ::ActivePowerVariable,
+    d::PSY.Storage,
+    ::AbstractStorageFormulation,
+) = -1 * PSY.get_input_active_power_limits(d).max
+get_variable_sign(
+    ::ActivePowerVariable,
+    d::Type{<:PSY.Storage},
+    ::AbstractStorageFormulation,
+) = 1.0
 
 PSI.get_variable_upper_bound(
     ::PSI.EnergyVariable,
     d::PSY.Storage,
     ::PSI.AbstractStorageFormulation,
 ) = PSY.get_rating(d)
+
+function DeviceEnergyBalanceConstraintSpec(
+    ::Type{<:EnergyBalanceConstraint},
+    ::Type{EnergyVariable},
+    ::Type{St},
+    ::Type{SimpleBatteryDispatch},
+    ::Type{<:PM.AbstractPowerModel},
+    feedforward::Union{Nothing, AbstractAffectFeedForward},
+    use_parameters::Bool,
+    use_forecasts::Bool,
+) where {St <: PSY.Storage}
+    return DeviceEnergyBalanceConstraintSpec(;
+        constraint_name = make_constraint_name(ENERGY_LIMIT, St),
+        energy_variable = make_variable_name(ENERGY, St),
+        initial_condition = InitialEnergyLevel,
+        pout_variable_names = [make_variable_name(ACTIVE_POWER, St)],
+        constraint_func = energy_balance!,
+    )
+end
 
 function inertia_constraints!(
     optimization_container::PSI.OptimizationContainer,

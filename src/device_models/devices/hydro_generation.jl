@@ -13,7 +13,11 @@ function PSI.DeviceRangeConstraintSpec(
 ) where {T <: PSY.HydroGen}
     return PSI.DeviceRangeConstraintSpec(;
         range_constraint_spec = PSI.RangeConstraintSpec(;
-            constraint_name = PSI.make_constraint_name(PSI.RangeConstraint, PSI.ActivePowerVariable, T),
+            constraint_name = PSI.make_constraint_name(
+                PSI.RangeConstraint,
+                PSI.ActivePowerVariable,
+                T,
+            ),
             variable_name = PSI.make_variable_name(PSI.ActivePowerVariable, T),
             bin_variable_names = [PSI.make_variable_name(PSI.OnVariable, T)],
             limits_func = x -> PSY.get_active_power_limits(x),

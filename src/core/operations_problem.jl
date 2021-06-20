@@ -74,7 +74,6 @@ function PSI.write_model_results!(
         binary_variables = get_binary_variables(problem)
         fix_binary_variables(binary_variables)
         relax_binary_variables(binary_variables)
-        
 
         PSI.solve!(problem)
         PSI._write_model_dual_results!(
@@ -140,7 +139,7 @@ end
 function fix_binary_variables(binary_variables)
     for (var_name, data_array) in binary_variables
         for var_ref in data_array
-            JuMP.fix(var_ref, abs(round(JuMP.value(var_ref))); force=true)
+            JuMP.fix(var_ref, abs(round(JuMP.value(var_ref))); force = true)
         end
     end
     return
