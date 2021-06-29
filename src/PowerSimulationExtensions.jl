@@ -4,6 +4,8 @@ module PowerSimulationExtensions
 # Exports
 # OperationProblem
 export MILPDualProblem
+export StandardUnitCommitmentCC
+export MILPDualProblemCC
 
 # Service Formulations
 export RampReserve
