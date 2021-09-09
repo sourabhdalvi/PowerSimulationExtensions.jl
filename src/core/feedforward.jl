@@ -279,7 +279,8 @@ function PSI.feedforward!(
     for prefix in PSI.get_affected_variables(ff_model)
         var_name = PSI.make_variable_name(prefix, T)
         varslack_name = PSI.make_variable_name(PSI.ENERGY_SHORTAGE, T)
-        parameter_ref = PSI.UpdateRef{JuMP.VariableRef}(var_name)
+        source_var_name = PSI.make_variable_name(PSI.get_variable_source_problem(ff_model), T)
+        parameter_ref = PSI.UpdateRef{JuMP.VariableRef}(source_var_name)
         energy_target_ff(
             optimization_container,
             PSI.make_constraint_name(FEEDFORWARD_ENERGY_TARGET, T),
