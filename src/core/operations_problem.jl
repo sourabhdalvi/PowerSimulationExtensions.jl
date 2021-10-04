@@ -121,8 +121,14 @@ function get_binary_variables(problem)
     binary_variables = Dict()
     variable_refs = PSI.get_variables(problem)
     for (var_name, data_array) in variable_refs
-        if JuMP.is_binary(first(data_array))
-            binary_variables[var_name] = data_array
+        if isa(data_arrayy, JuMP.Containers.SparseAxisArray)
+            if JuMP.is_binary(first(eachindex(v)))
+                binary_variables[var_name] = data_array
+            end
+        else
+            if JuMP.is_binary(first(data_array))
+                binary_variables[var_name] = data_array
+            end
         end
     end
     return binary_variables
