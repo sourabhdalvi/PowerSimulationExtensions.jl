@@ -27,4 +27,3 @@ function PSI.AddCostSpec(
         variable_cost = cost_function,
     )
 end
-
