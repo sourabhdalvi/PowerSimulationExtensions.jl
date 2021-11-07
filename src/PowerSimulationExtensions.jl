@@ -70,5 +70,6 @@ include("./device_models/device_constructors/thermalgeneration_constructor.jl")
 include("./device_models/device_constructors/renewablegeneration_constructor.jl")
 include("./device_models/device_constructors/storage_constructor.jl")
 include("./device_models/device_constructors/hydrogeneration_constructor.jl")
+include("./device_models/device_constructors/branch_constructor.jl")
 
 end # module
