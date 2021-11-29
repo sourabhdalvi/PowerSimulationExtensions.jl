@@ -118,7 +118,6 @@ function PSI.write_model_results!(
         binary_variables = get_binary_variables(problem)
         fix_binary_variables(binary_variables)
         relax_binary_variables(binary_variables)
-        
 
         PSI.solve!(problem)
         PSI._write_model_dual_results!(
@@ -165,8 +164,16 @@ function get_binary_variables(problem)
     binary_variables = Dict()
     variable_refs = PSI.get_variables(problem)
     for (var_name, data_array) in variable_refs
-        if JuMP.is_binary(first(data_array))
-            binary_variables[var_name] = data_array
+        if isa(data_array, JuMP.Containers.SparseAxisArray)
+            idxs = filter!(idx -> isa(data_array[idx], JuMP.VariableRef), collect(eachindex(data_array)))
+            var = data_array[idxs[1]]
+            if JuMP.is_binary(var)
+                binary_variables[var_name] = data_array
+            end
+        else
+            if JuMP.is_binary(first(data_array))
+                binary_variables[var_name] = data_array
+            end
         end
     end
     return binary_variables
@@ -184,7 +191,7 @@ end
 function fix_binary_variables(binary_variables)
     for (var_name, data_array) in binary_variables
         for var_ref in data_array
-            JuMP.fix(var_ref, abs(round(JuMP.value(var_ref))); force=true)
+            JuMP.fix(var_ref, abs(round(JuMP.value(var_ref))); force = true)
         end
     end
     return
