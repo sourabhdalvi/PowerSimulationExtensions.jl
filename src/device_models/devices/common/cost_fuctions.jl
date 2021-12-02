@@ -47,3 +47,23 @@ function quadratic_cost!(
     PSI.add_to_cost_expression!(optimization_container, spec.multiplier * gen_cost * dt)
     return
 end
+
+function PSI.add_to_cost!(
+    optimization_container::PSI.OptimizationContainer,
+    spec::PSI.AddCostSpec,
+    cost_data::Float64,
+    component::PSY.Component,
+)
+    component_name = PSY.get_name(component)
+    time_steps = PSI.model_time_steps(optimization_container)
+    for t in time_steps
+        PSI.variable_cost!(
+            optimization_container,
+            spec,
+            component_name,
+            PSY.VariableCost(cost_data),
+            t,
+        )
+    end
+    return
+end
