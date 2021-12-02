@@ -1,7 +1,7 @@
 abstract type ResponseReserve <: PSI.AbstractReservesFormulation end
-struct RampReserve <: ResponseReserve end
 struct QuadraticCostRampReserve <: ResponseReserve end
 struct InertiaReserve <: PSI.AbstractReservesFormulation end
+struct RenewableMinGen <: PSI.AbstractReservesFormulation end
 
 PSI.get_variable_binary(
     ::InertiaServiceVariable,
@@ -83,59 +83,56 @@ function _get_data_for_ramp_limit(
     return data
 end
 
-# function PSI.ramp_constraints!(
-#     optimization_container::PSI.OptimizationContainer,
-#     service::SR,
-#     contributing_devices::U,
-#     ::PSI.ServiceModel{SR, T},
-# ) where {
-#     SR <: PSY.Reserve{PSY.ReserveUp},
-#     T <: PSI.AbstractReservesFormulation,
-#     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
-# } where {D <: PSY.Component}
-#     initial_time = PSI.model_initial_time(optimization_container)
-#     data = _get_data_for_ramp_limit(optimization_container, service, contributing_devices)
-#     service_name = PSY.get_name(service)
-#     if !isempty(data)
-#         service_upward_rateofchange!(
-#             optimization_container,
-#             data,
-#             PSI.make_constraint_name(RAMP_LIMIT, SR),
-#             PSI.make_variable_name(service_name, SR),
-#             service_name,
-#         )
-#     else
-#         @warn "Data doesn't contain contributing devices with ramp limits for service $service_name, consider adjusting your formulation"
-#     end
-#     return
-# end
+function PSI.service_requirement_constraint!(
+    optimization_container::PSI.OptimizationContainer,
+    service::SR,
+    ::PSI.ServiceModel{SR, RenewableMinGen},
+) where {SR <: PSY.Reserve}
+    parameters = PSI.model_has_parameters(optimization_container)
+    use_forecast_data = PSI.model_uses_forecasts(optimization_container)
+    initial_time = PSI.model_initial_time(optimization_container)
 
-# function PSI.ramp_constraints!(
-#     optimization_container::PSI.OptimizationContainer,
-#     service::SR,
-#     contributing_devices::U,
-#     ::PSI.ServiceModel{SR, T},
-# ) where {
-#     SR <: PSY.Reserve{PSY.ReserveDown},
-#     T <: PSI.AbstractReservesFormulation,
-#     U <: Union{Vector{D}, IS.FlattenIteratorWrapper{D}},
-# } where {D <: PSY.Component}
-#     initial_time = PSI.model_initial_time(optimization_container)
-#     data = _get_data_for_ramp_limit(optimization_container, service, contributing_devices)
-#     service_name = PSY.get_name(service)
-#     if !isempty(data)
-#         service_downward_rateofchange!(
-#             optimization_container,
-#             data,
-#             PSI.make_constraint_name(RAMP_LIMIT, SR),
-#             PSI.make_variable_name(service_name, SR),
-#             service_name,
-#         )
-#     else
-#         @warn "Data doesn't contain contributing devices with ramp limits for service $service_name, consider adjusting your formulation"
-#     end
-#     return
-# end
+    time_steps = PSI.model_time_steps(optimization_container)
+    name = PSY.get_name(service)
+    constraint = PSI.get_constraint(
+        optimization_container,
+        PSI.make_constraint_name(PSI.REQUIREMENT, SR),
+    )
+    reserve_variable = PSI.get_variable(optimization_container, name, SR)
+    use_slacks = PSI.get_services_slack_variables(optimization_container.settings)
+    ts_vector = PSI.get_time_series(optimization_container, service, "requirement")
+    use_slacks && (slack_vars = PSI.reserve_slacks(optimization_container, name))
+    requirement = PSY.get_requirement(service)
+
+    if parameters
+        container = PSI.get_parameter_container(
+            optimization_container,
+            PSI.UpdateRef{SR}(PSI.SERVICE_REQUIREMENT, "requirement"),
+        )
+        param = PSI.get_parameter_array(container)
+        multiplier = PSI.get_multiplier_array(container)
+        for t in time_steps
+            param[name, t] =
+                PSI.add_parameter(optimization_container.JuMPmodel, ts_vector[t])
+            multiplier[name, t] = 1.0
+        end
+        if use_slacks
+            resource_expression = sum(sum(reserve_variable[:, t]) + slack_vars[t] for t in time_steps) 
+        else
+            resource_expression = sum(sum(reserve_variable[:, t]) for t in time_steps) 
+        end
+        constraint[name] = JuMP.@constraint(
+            optimization_container.JuMPmodel,
+            resource_expression >= sum(param[name, t] * requirement for t in time_steps)
+        )
+    else        
+        constraint[name] = JuMP.@constraint(
+            optimization_container.JuMPmodel,
+            sum(sum(reserve_variable[:, t]) for t in time_steps) >= sum(ts_vector[t] * requirement for t in time_steps)
+        )
+    end
+    return
+end
 
 function PSI.service_requirement_constraint!(
     optimization_container::PSI.OptimizationContainer,

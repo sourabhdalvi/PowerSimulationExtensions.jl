@@ -8,9 +8,9 @@ export StandardUnitCommitmentCC
 export MILPDualProblemCC
 
 # Service Formulations
-export RampReserve
 export QuadraticCostRampReserve
 export InertiaReserve
+export RenewableMinGen
 
 # Device Formulations
 export ThermalInertiaBasicUnitCommitment
