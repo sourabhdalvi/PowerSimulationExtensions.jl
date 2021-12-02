@@ -33,7 +33,9 @@ function apply_must_run_constraints!(problem)
         JuMP.fix(commitment_variables[g, t], 1.0)
     end
 end
-function PSI.problem_build!(problem::PSI.OperationsProblem{T}) where T <: Union{StandardUnitCommitmentCC, MILPDualProblemCC} 
+function PSI.problem_build!(
+    problem::PSI.OperationsProblem{T},
+) where {T <: Union{StandardUnitCommitmentCC, MILPDualProblemCC}}
     PSI.build_impl!(
         PSI.get_optimization_container(problem),
         PSI.get_template(problem),
@@ -43,8 +45,9 @@ function PSI.problem_build!(problem::PSI.OperationsProblem{T}) where T <: Union{
     apply_must_run_constraints!(problem)
 end
 
-
-function PSI.ProblemResults(problem::PSI.OperationsProblem{T}) where T <: Union{MILPDualProblem, MILPDualProblemCC} 
+function PSI.ProblemResults(
+    problem::PSI.OperationsProblem{T},
+) where {T <: Union{MILPDualProblem, MILPDualProblemCC}}
     status = PSI.get_run_status(problem)
     status != PSI.RunStatus.SUCCESSFUL &&
         error("problem was not solved successfully: $status")
@@ -94,7 +97,7 @@ function PSI.write_model_results!(
     problem::PSI.OperationsProblem{T},
     timestamp;
     exports = nothing,
-) where T <: Union{MILPDualProblem, MILPDualProblemCC} 
+) where {T <: Union{MILPDualProblem, MILPDualProblemCC}}
     optimization_container = PSI.get_optimization_container(problem)
     if exports !== nothing
         export_params = Dict{Symbol, Any}(
@@ -165,7 +168,10 @@ function get_binary_variables(problem)
     variable_refs = PSI.get_variables(problem)
     for (var_name, data_array) in variable_refs
         if isa(data_array, JuMP.Containers.SparseAxisArray)
-            idxs = filter!(idx -> isa(data_array[idx], JuMP.VariableRef), collect(eachindex(data_array)))
+            idxs = filter!(
+                idx -> isa(data_array[idx], JuMP.VariableRef),
+                collect(eachindex(data_array)),
+            )
             var = data_array[idxs[1]]
             if JuMP.is_binary(var)
                 binary_variables[var_name] = data_array

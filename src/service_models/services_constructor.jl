@@ -107,7 +107,6 @@ function PSI.construct_service!(
     return
 end
 
-
 function PSI.construct_service!(
     optimization_container::PSI.OptimizationContainer,
     services::Vector{SR},
@@ -148,16 +147,16 @@ function PSI.construct_service!(
         # Variables
         PSI.add_variables!(
             optimization_container,
-            InertiaServiceVariable,
+            PSI.ActiveServiceVariable,
             service,
             contributing_devices,
             RenewableMinGen(),
         )
         # Constraints
-        PSI.service_requirement_constraint!(optimization_container, service, model)
+        # PSI.service_requirement_constraint!(optimization_container, service, model)
         PSI.modify_device_model!(devices_template, model, contributing_devices)
         # Cost Function
-        PSI.cost_function!(optimization_container, service, model) 
+        PSI.cost_function!(optimization_container, service, model)
     end
     return
 end
