@@ -18,6 +18,7 @@ export ThermalInertiaStandardUnitCommitment
 export HydroInertiaCommitmentRunOfRiver
 export BookKeepingwInertia
 export RenewableFullDispatchInertia
+export RenewableFullDispatchMinGen
 
 # Branch Formulations
 export StaticBranchFlowCost

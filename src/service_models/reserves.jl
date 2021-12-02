@@ -1,5 +1,4 @@
-abstract type ResponseReserve <: PSI.AbstractReservesFormulation end
-struct QuadraticCostRampReserve <: ResponseReserve end
+struct QuadraticCostRampReserve <: PSI.AbstractReservesFormulation end
 struct InertiaReserve <: PSI.AbstractReservesFormulation end
 struct RenewableMinGen <: PSI.AbstractReservesFormulation end
 
@@ -117,18 +116,20 @@ function PSI.service_requirement_constraint!(
             multiplier[name, t] = 1.0
         end
         if use_slacks
-            resource_expression = sum(sum(reserve_variable[:, t]) + slack_vars[t] for t in time_steps) 
+            resource_expression =
+                sum(sum(reserve_variable[:, t]) + slack_vars[t] for t in time_steps)
         else
-            resource_expression = sum(sum(reserve_variable[:, t]) for t in time_steps) 
+            resource_expression = sum(sum(reserve_variable[:, t]) for t in time_steps)
         end
         constraint[name] = JuMP.@constraint(
             optimization_container.JuMPmodel,
             resource_expression >= sum(param[name, t] * requirement for t in time_steps)
         )
-    else        
+    else
         constraint[name] = JuMP.@constraint(
             optimization_container.JuMPmodel,
-            sum(sum(reserve_variable[:, t]) for t in time_steps) >= sum(ts_vector[t] * requirement for t in time_steps)
+            sum(sum(reserve_variable[:, t]) for t in time_steps) >=
+            sum(ts_vector[t] * requirement for t in time_steps)
         )
     end
     return
@@ -239,7 +240,7 @@ end
 function PSI.include_service!(
     constraint_info::T,
     services,
-    ::PSI.ServiceModel{SR, <:ResponseReserve},
+    ::PSI.ServiceModel{SR, QuadraticCostRampReserve},
 ) where {T <: PSI.AbstractRampConstraintInfo, SR <: PSY.Reserve{PSY.ReserveUp}}
     return
 end
@@ -247,7 +248,7 @@ end
 function PSI.include_service!(
     constraint_info::T,
     services,
-    ::PSI.ServiceModel{SR, <:ResponseReserve},
+    ::PSI.ServiceModel{SR, QuadraticCostRampReserve},
 ) where {T <: PSI.AbstractRampConstraintInfo, SR <: PSY.Reserve{PSY.ReserveDown}}
     return
 end
@@ -256,6 +257,36 @@ function PSI.include_service!(
     constraint_info::T,
     services,
     ::PSI.ServiceModel{SR, InertiaReserve},
+) where {
+    T <: Union{PSI.AbstractRangeConstraintInfo, PSI.AbstractRampConstraintInfo},
+    SR <: PSY.Reserve,
+}
+    return
+end
+
+function PSI.modify_device_model!(
+    devices_template::Dict{Symbol, PSI.DeviceModel},
+    service_model::PSI.ServiceModel{<:PSY.Reserve, RenewableMinGen},
+    contributing_devices::Vector{<:PSY.Device},
+)
+    device_types = unique(typeof.(contributing_devices))
+    for dt in device_types
+        if dt <: PSY.RenewableGen
+            for (device_model_name, device_model) in devices_template
+                PSI.get_component_type(device_model) != dt && continue
+                service_model in device_model.services && continue
+                push!(device_model.services, service_model)
+            end
+        end
+    end
+
+    return
+end
+
+function PSI.include_service!(
+    constraint_info::T,
+    services,
+    ::PSI.ServiceModel{SR, RenewableMinGen},
 ) where {
     T <: Union{PSI.AbstractRangeConstraintInfo, PSI.AbstractRampConstraintInfo},
     SR <: PSY.Reserve,
