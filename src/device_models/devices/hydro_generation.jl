@@ -55,8 +55,6 @@ function inertia_constraints!(
                 _get_inertia(d),
                 PSY.get_base_power(d),
             )
-            # TODO : verify this copy paste error 
-            # PSI.add_device_services!(constraint_info[idx], d, model)
         end
 
         hydro_device_inertia!(

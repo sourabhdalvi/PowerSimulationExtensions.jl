@@ -34,7 +34,8 @@ function inertia_constraints!(
                 _get_inertia(d),
                 PSY.get_output_active_power_limits(d).max,
             )
-            # TODO : verify this copy paste error 
+            # We take into account the P_out and upward reserve provision to
+            # calculate the amount of inertia contributed.
             PSI.add_device_services!(constraint_info[idx], d, model)
         end
 

@@ -8,7 +8,7 @@ function renewable_device_inertia!(
     time_steps = PSI.model_time_steps(optimization_container)
     var = PSI.get_variable(optimization_container, var_name)
     var_service = PSI.get_variable(optimization_container, service_name)
-    var_names = axes(var, 1)
+    var_names = [d.component_name for d in data]
     constraint =
         PSI.add_cons_container!(optimization_container, cons_name, var_names, time_steps)
 
@@ -41,7 +41,7 @@ function renewable_device_inertia_param!(
     time_steps = PSI.model_time_steps(optimization_container)
     var = PSI.get_variable(optimization_container, var_name)
     var_service = PSI.get_variable(optimization_container, service_name)
-    varstart_names = axes(var, 1)
+    varstart_names = [d.component_name for d in data]
     constraint = PSI.add_cons_container!(
         optimization_container,
         cons_name,
@@ -81,7 +81,7 @@ function storage_device_inertia!(
     var_p = PSI.get_variable(optimization_container, var_names[1])
     var_e = PSI.get_variable(optimization_container, var_names[2])
     var_service = PSI.get_variable(optimization_container, service_name)
-    var_names = axes(var_p, 1)
+    var_names = [d.component_name for d in data]
     power_bound =
         PSI.add_cons_container!(optimization_container, cons_name[1], var_names, time_steps)
     energy_bound =
@@ -120,7 +120,7 @@ function hydro_device_inertia!(
     time_steps = PSI.model_time_steps(optimization_container)
     var = PSI.get_variable(optimization_container, var_name)
     var_service = PSI.get_variable(optimization_container, service_name)
-    var_names = axes(var, 1)
+    var_names = [d.component_name for d in data]
     constraint =
         PSI.add_cons_container!(optimization_container, cons_name, var_names, time_steps)
 

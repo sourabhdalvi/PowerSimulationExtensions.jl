@@ -35,7 +35,8 @@ function inertia_constraints!(
                 PSY.get_max_active_power(d),
                 PSI.get_time_series(optimization_container, d, forecast_label),
             )
-            # TODO : verify this copy paste error 
+            # We take into account the P and upward reserve provision to
+            # calculate the amount of inertia contributed.
             PSI.add_device_services!(constraint_info[idx], d, model)
         end
         if use_parameters
