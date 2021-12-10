@@ -12,4 +12,7 @@ struct InertiaServiceVariable <: PSI.VariableType end
 
 struct ActivePowerShortageVariable <: PSI.VariableType end
 
-PSI.make_variable_name(::Type{ActivePowerShortageVariable}, ::Type{T}) where {T <: PSY.Device} = PSI.encode_symbol(T, "P_shortage")
+PSI.make_variable_name(
+    ::Type{ActivePowerShortageVariable},
+    ::Type{T},
+) where {T <: PSY.Device} = PSI.encode_symbol(T, "P_shortage")

@@ -119,11 +119,7 @@ function PSI.construct_device!(
     sys::PSY.System,
     model::PSI.DeviceModel{H, D},
     ::Type{S},
-) where {
-    H <: PSY.HydroGen,
-    D <: HydroCleanEnergyRunOfRiver,
-    S <: PM.AbstractPowerModel,
-}
+) where {H <: PSY.HydroGen, D <: HydroCleanEnergyRunOfRiver, S <: PM.AbstractPowerModel}
     devices = PSI.get_available_components(H, sys)
 
     if !PSI.validate_available_devices(H, devices)
@@ -217,11 +213,7 @@ function PSI.construct_device!(
     sys::PSY.System,
     model::PSI.DeviceModel{H, D},
     ::Type{S},
-) where {
-    H <: PSY.HydroGen,
-    D <: HydroEmisCommitmentRunOfRiver,
-    S <: PM.AbstractPowerModel,
-}
+) where {H <: PSY.HydroGen, D <: HydroEmisCommitmentRunOfRiver, S <: PM.AbstractPowerModel}
     devices = PSI.get_available_components(H, sys)
 
     if !PSI.validate_available_devices(H, devices)

@@ -389,8 +389,6 @@ function PSI.construct_device!(
     return
 end
 
-
-
 function PSI.construct_device!(
     optimization_container::PSI.OptimizationContainer,
     sys::PSY.System,
@@ -599,5 +597,3 @@ function PSI.construct_device!(
 
     return
 end
-
-

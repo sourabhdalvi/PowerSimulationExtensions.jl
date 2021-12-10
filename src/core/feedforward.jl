@@ -128,13 +128,32 @@ struct EmisFF <: PSI.AbstractAffectFeedForward
         service::PSY.Reserve,
         cache::Union{Nothing, Type{<:PSI.AbstractCache}},
     )
-        new(Symbol(binary_source_problem), Symbol(variable_source_problem), Symbol.(affected_variables), affected_time_periods, service, cache)
+        new(
+            Symbol(binary_source_problem),
+            Symbol(variable_source_problem),
+            Symbol.(affected_variables),
+            affected_time_periods,
+            service,
+            cache,
+        )
     end
 end
 
-
-function EmisFF(; binary_source_problem, variable_source_problem, affected_variables, affected_time_periods, service)
-    return EmisFF(binary_source_problem, variable_source_problem, affected_variables, affected_time_periods, service, nothing)
+function EmisFF(;
+    binary_source_problem,
+    variable_source_problem,
+    affected_variables,
+    affected_time_periods,
+    service,
+)
+    return EmisFF(
+        binary_source_problem,
+        variable_source_problem,
+        affected_variables,
+        affected_time_periods,
+        service,
+        nothing,
+    )
 end
 
 PSI.get_variable_source_problem(p::EmisFF) = p.variable_source_problem
@@ -303,7 +322,8 @@ function energy_commitment_ff(
     set_name = axes[1]
 
     @assert axes[2] == time_steps
-    container_ub = PSI.add_param_container!(optimization_container, param_reference, set_name)
+    container_ub =
+        PSI.add_param_container!(optimization_container, param_reference, set_name)
     param_ub = PSI.get_parameter_array(container_ub)
     multiplier_ub = PSI.get_multiplier_array(container_ub)
     con_ub = PSI.add_cons_container!(optimization_container, ub_name, set_name)
@@ -430,12 +450,7 @@ function PSI.feedforward!(
 ) where {T <: PSY.StaticInjection, D <: PSI.AbstractDeviceFormulation}
 
     # Energy FF
-    PSI.add_variables!(
-        optimization_container,
-        ActivePowerShortageVariable,
-        devices,
-        D(),
-    )
+    PSI.add_variables!(optimization_container, ActivePowerShortageVariable, devices, D())
     time_steps = PSI.model_time_steps(optimization_container)
     slack_var_name = PSI.make_variable_name(ActivePowerShortageVariable, T)
     slack_variable = PSI.get_variable(optimization_container, slack_var_name)
@@ -459,7 +474,6 @@ function PSI.feedforward!(
         )
     end
 end
-
 
 function PSI.feedforward!(
     optimization_container::PSI.OptimizationContainer,
@@ -505,12 +519,7 @@ function PSI.feedforward!(
     )
 
     # Energy FF
-    PSI.add_variables!(
-        optimization_container,
-        ActivePowerShortageVariable,
-        devices,
-        D(),
-    )
+    PSI.add_variables!(optimization_container, ActivePowerShortageVariable, devices, D())
     time_steps = PSI.model_time_steps(optimization_container)
     slack_var_name = PSI.make_variable_name(ActivePowerShortageVariable, T)
     slack_variable = PSI.get_variable(optimization_container, slack_var_name)

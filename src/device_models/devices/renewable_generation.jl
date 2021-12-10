@@ -2,10 +2,11 @@ struct RenewableFullDispatchInertia <: PSI.AbstractRenewableDispatchFormulation 
 struct RenewableCleanEnergyDispatch <: PSI.AbstractRenewableDispatchFormulation end
 struct RenewableEmisDispatch <: PSI.AbstractRenewableDispatchFormulation end
 
-PSI.get_variable_binary(::ActivePowerShortageVariable, ::Type{<:PSY.RenewableGen}, _) = false
+PSI.get_variable_binary(::ActivePowerShortageVariable, ::Type{<:PSY.RenewableGen}, _) =
+    false
 PSI.get_variable_lower_bound(::ActivePowerShortageVariable, d::PSY.RenewableGen, _) = 0.0
-PSI.get_variable_upper_bound(::ActivePowerShortageVariable, d::PSY.RenewableGen, _) = PSY.get_rating(d)
-# PSI.get_variable_sign(::ActivePowerShortageVariable, ::Type{<:PSY.RenewableGen}, _) = 1.0
+PSI.get_variable_upper_bound(::ActivePowerShortageVariable, d::PSY.RenewableGen, _) =
+    PSY.get_rating(d)
 
 function inertia_constraints!(
     optimization_container::PSI.OptimizationContainer,
@@ -34,6 +35,7 @@ function inertia_constraints!(
                 PSY.get_max_active_power(d),
                 PSI.get_time_series(optimization_container, d, forecast_label),
             )
+            # TODO : verify this copy paste error 
             PSI.add_device_services!(constraint_info[idx], d, model)
         end
         if use_parameters

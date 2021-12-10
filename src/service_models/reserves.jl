@@ -30,7 +30,9 @@ function _get_inertia(d::PSY.Component)
     if haskey(PSY.get_ext(d), "inertia")
         return PSY.get_ext(d)["inertia"]
     else
-        @info("Inertia data (h-constant) is missing in Generator $(PSY.get_name(d)), h-constant will be set to 0.")
+        @info(
+            "Inertia data (h-constant) is missing in Generator $(PSY.get_name(d)), h-constant will be set to 0."
+        )
         return 0.0
     end
 end
@@ -112,7 +114,8 @@ function PSI.service_requirement_constraint!(
         param = PSI.get_parameter_array(container)
         multiplier = PSI.get_multiplier_array(container)
         for t in time_steps
-            param[name, t] = PSI.add_parameter(optimization_container.JuMPmodel, ts_vector[t])
+            param[name, t] =
+                PSI.add_parameter(optimization_container.JuMPmodel, ts_vector[t])
             multiplier[name, t] = 1.0
         end
         if use_slacks

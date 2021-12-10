@@ -6,8 +6,8 @@ struct ThermalEmisStandardUnitCommitment <: AbstractInertiaStandardUnitCommitmen
 
 PSI.get_variable_binary(::ActivePowerShortageVariable, ::Type{<:PSY.ThermalGen}, _) = false
 PSI.get_variable_lower_bound(::ActivePowerShortageVariable, d::PSY.ThermalGen, _) = 0.0
-PSI.get_variable_upper_bound(::ActivePowerShortageVariable, d::PSY.ThermalGen, _) = PSY.get_active_power_limits(d).max
-# PSI.get_variable_sign(::ActivePowerShortageVariable, ::Type{<:PSY.ThermalGen}, _) = 1.0
+PSI.get_variable_upper_bound(::ActivePowerShortageVariable, d::PSY.ThermalGen, _) =
+    PSY.get_active_power_limits(d).max
 
 function PSI.DeviceRangeConstraintSpec(
     ::Type{<:PSI.RangeConstraint},
@@ -105,7 +105,6 @@ function PSI.commitment_constraints!(
 
     return
 end
-
 
 function energy_contribution_constraint!(
     optimization_container::PSI.OptimizationContainer,

@@ -4,14 +4,11 @@ struct BookKeepingEmis <: PSI.AbstractStorageFormulation end
 
 PSI.get_variable_binary(::ActivePowerShortageVariable, ::Type{<:PSY.Storage}, _) = false
 PSI.get_variable_lower_bound(::ActivePowerShortageVariable, d::PSY.Storage, _) = 0.0
-PSI.get_variable_upper_bound(::ActivePowerShortageVariable, d::PSY.Storage, _) = PSY.get_output_active_power_limits(d).max
-# PSI.get_variable_sign(::ActivePowerShortageVariable, ::Type{<:PSY.Storage}, _) = 1.0
+PSI.get_variable_upper_bound(::ActivePowerShortageVariable, d::PSY.Storage, _) =
+    PSY.get_output_active_power_limits(d).max
 
-PSI.get_variable_upper_bound(
-    ::PSI.EnergyVariable,
-    d::PSY.Storage,
-    ::BookKeepingwInertia,
-) = PSY.get_rating(d)
+PSI.get_variable_upper_bound(::PSI.EnergyVariable, d::PSY.Storage, ::BookKeepingwInertia) =
+    PSY.get_rating(d)
 
 function inertia_constraints!(
     optimization_container::PSI.OptimizationContainer,
@@ -19,7 +16,11 @@ function inertia_constraints!(
     model::PSI.DeviceModel{T, D},
     ::Type{S},
     feedforward::Union{Nothing, PSI.AbstractAffectFeedForward},
-) where {T <: PSY.Storage, D <: Union{BookKeepingwInertia, BookKeepingEmis}, S <: PM.AbstractPowerModel}
+) where {
+    T <: PSY.Storage,
+    D <: Union{BookKeepingwInertia, BookKeepingEmis},
+    S <: PM.AbstractPowerModel,
+}
     if _has_inertia_service(model)
         service_model = _get_inertia_service_model(model)
         service = _get_services(first(devices), service_model)[1]
@@ -33,6 +34,7 @@ function inertia_constraints!(
                 _get_inertia(d),
                 PSY.get_output_active_power_limits(d).max,
             )
+            # TODO : verify this copy paste error 
             PSI.add_device_services!(constraint_info[idx], d, model)
         end
 
@@ -52,7 +54,6 @@ function inertia_constraints!(
     end
     return
 end
-
 
 function energy_contribution_constraint!(
     optimization_container::PSI.OptimizationContainer,

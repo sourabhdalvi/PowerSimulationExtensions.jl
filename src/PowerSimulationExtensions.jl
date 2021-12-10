@@ -40,10 +40,7 @@ export EmisFF
 # Imports
 import PowerSystems
 import PowerSystemExtensions
-import PowerSystemExtensions:
-    CleanEnergyReserve,
-    InertiaReserve,
-    ThermalCleanEnergy
+import PowerSystemExtensions: CleanEnergyReserve, InertiaReserve, ThermalCleanEnergy
 
 import PowerSimulations
 import JuMP

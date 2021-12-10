@@ -225,13 +225,37 @@ function PSI.construct_device!(
         S,
         PSI.get_feedforward(model),
     )
-    PSI.ramp_constraints!(optimization_container, devices, model, S, PSI.get_feedforward(model))
-    PSI.time_constraints!(optimization_container, devices, model, S, PSI.get_feedforward(model))
-    energy_contribution_constraint!(optimization_container, devices, model, S, PSI.get_feedforward(model))
+    PSI.ramp_constraints!(
+        optimization_container,
+        devices,
+        model,
+        S,
+        PSI.get_feedforward(model),
+    )
+    PSI.time_constraints!(
+        optimization_container,
+        devices,
+        model,
+        S,
+        PSI.get_feedforward(model),
+    )
+    energy_contribution_constraint!(
+        optimization_container,
+        devices,
+        model,
+        S,
+        PSI.get_feedforward(model),
+    )
     PSI.feedforward!(optimization_container, devices, model, PSI.get_feedforward(model))
 
     # Cost Function
-    PSI.cost_function!(optimization_container, devices, model, S, PSI.get_feedforward(model))
+    PSI.cost_function!(
+        optimization_container,
+        devices,
+        model,
+        S,
+        PSI.get_feedforward(model),
+    )
 
     return
 end
@@ -285,13 +309,37 @@ function PSI.construct_device!(
         S,
         PSI.get_feedforward(model),
     )
-    PSI.ramp_constraints!(optimization_container, devices, model, S, PSI.get_feedforward(model))
-    PSI.time_constraints!(optimization_container, devices, model, S, PSI.get_feedforward(model))
-    energy_contribution_constraint!(optimization_container, devices, model, S, PSI.get_feedforward(model))
+    PSI.ramp_constraints!(
+        optimization_container,
+        devices,
+        model,
+        S,
+        PSI.get_feedforward(model),
+    )
+    PSI.time_constraints!(
+        optimization_container,
+        devices,
+        model,
+        S,
+        PSI.get_feedforward(model),
+    )
+    energy_contribution_constraint!(
+        optimization_container,
+        devices,
+        model,
+        S,
+        PSI.get_feedforward(model),
+    )
     PSI.feedforward!(optimization_container, devices, model, PSI.get_feedforward(model))
 
     # Cost Function
-    PSI.cost_function!(optimization_container, devices, model, S, PSI.get_feedforward(model))
+    PSI.cost_function!(
+        optimization_container,
+        devices,
+        model,
+        S,
+        PSI.get_feedforward(model),
+    )
 
     return
 end

@@ -5,8 +5,8 @@ struct HydroEmisCommitmentRunOfRiver <: AbstractInertiaUnitCommitment end
 
 PSI.get_variable_binary(::ActivePowerShortageVariable, ::Type{<:PSY.HydroGen}, _) = false
 PSI.get_variable_lower_bound(::ActivePowerShortageVariable, d::PSY.HydroGen, _) = 0.0
-PSI.get_variable_upper_bound(::ActivePowerShortageVariable, d::PSY.HydroGen, _) = PSY.get_active_power_limits(d).max
-# PSI.get_variable_sign(::ActivePowerShortageVariable, ::Type{<:PSY.HydroGen}, _) = 1.0
+PSI.get_variable_upper_bound(::ActivePowerShortageVariable, d::PSY.HydroGen, _) =
+    PSY.get_active_power_limits(d).max
 
 function PSI.DeviceRangeConstraintSpec(
     ::Type{<:PSI.RangeConstraint},
@@ -69,7 +69,6 @@ function inertia_constraints!(
     end
     return
 end
-
 
 function energy_contribution_constraint!(
     optimization_container::PSI.OptimizationContainer,
