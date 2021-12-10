@@ -56,7 +56,7 @@ function PSI.construct_service!(
     optimization_container::PSI.OptimizationContainer,
     services::Vector{SR},
     sys::PSY.System,
-    model::PSI.ServiceModel{SR, InertiaReserve},
+    model::PSI.ServiceModel{SR, VariableInertiaReserve},
     devices_template::Dict{Symbol, PSI.DeviceModel},
     incompatible_device_types::Vector{<:DataType},
 ) where {SR <: PSY.Reserve}
@@ -96,7 +96,7 @@ function PSI.construct_service!(
             InertiaServiceVariable,
             service,
             contributing_devices,
-            InertiaReserve(),
+            VariableInertiaReserve(),
         )
         # Constraints
         PSI.service_requirement_constraint!(optimization_container, service, model)
@@ -111,7 +111,7 @@ function PSI.construct_service!(
     optimization_container::PSI.OptimizationContainer,
     services::Vector{SR},
     sys::PSY.System,
-    model::PSI.ServiceModel{SR, RenewableMinGen},
+    model::PSI.ServiceModel{SR, EnergyRequirementReserve},
     devices_template::Dict{Symbol, PSI.DeviceModel},
     incompatible_device_types::Vector{<:DataType},
 ) where {SR <: PSY.Reserve}
@@ -150,10 +150,10 @@ function PSI.construct_service!(
             PSI.ActiveServiceVariable,
             service,
             contributing_devices,
-            RenewableMinGen(),
+            EnergyRequirementReserve(),
         )
         # Constraints
-        # PSI.service_requirement_constraint!(optimization_container, service, model)
+        PSI.service_requirement_constraint!(optimization_container, service, model)
         PSI.modify_device_model!(devices_template, model, contributing_devices)
         # Cost Function
         PSI.cost_function!(optimization_container, service, model)

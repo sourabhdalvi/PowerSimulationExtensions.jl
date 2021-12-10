@@ -1,9 +1,16 @@
 struct BookKeepingwInertia <: PSI.AbstractStorageFormulation end
+struct BookKeepingwCleanEnergy <: PSI.AbstractStorageFormulation end
+struct BookKeepingEmis <: PSI.AbstractStorageFormulation end
+
+PSI.get_variable_binary(::ActivePowerShortageVariable, ::Type{<:PSY.Storage}, _) = false
+PSI.get_variable_lower_bound(::ActivePowerShortageVariable, d::PSY.Storage, _) = 0.0
+PSI.get_variable_upper_bound(::ActivePowerShortageVariable, d::PSY.Storage, _) = PSY.get_output_active_power_limits(d).max
+# PSI.get_variable_sign(::ActivePowerShortageVariable, ::Type{<:PSY.Storage}, _) = 1.0
 
 PSI.get_variable_upper_bound(
     ::PSI.EnergyVariable,
     d::PSY.Storage,
-    ::PSI.AbstractStorageFormulation,
+    ::BookKeepingwInertia,
 ) = PSY.get_rating(d)
 
 function inertia_constraints!(
@@ -12,7 +19,7 @@ function inertia_constraints!(
     model::PSI.DeviceModel{T, D},
     ::Type{S},
     feedforward::Union{Nothing, PSI.AbstractAffectFeedForward},
-) where {T <: PSY.Storage, D <: BookKeepingwInertia, S <: PM.AbstractPowerModel}
+) where {T <: PSY.Storage, D <: Union{BookKeepingwInertia, BookKeepingEmis}, S <: PM.AbstractPowerModel}
     if _has_inertia_service(model)
         service_model = _get_inertia_service_model(model)
         service = _get_services(first(devices), service_model)[1]
@@ -42,6 +49,46 @@ function inertia_constraints!(
             ),
             PSI.make_variable_name(PSY.get_name(service), typeof(service)),
         )
+    end
+    return
+end
+
+
+function energy_contribution_constraint!(
+    optimization_container::PSI.OptimizationContainer,
+    devices::IS.FlattenIteratorWrapper{T},
+    model::PSI.DeviceModel{T, D},
+    ::Type{S},
+    feedforward::Union{Nothing, PSI.AbstractAffectFeedForward},
+) where {
+    T <: PSY.Storage,
+    D <: Union{BookKeepingwCleanEnergy, BookKeepingEmis},
+    S <: PM.AbstractPowerModel,
+}
+    if _has_clean_energy_service(model)
+        service_model = _get_clean_energy_service_model(model)
+        service = _get_services(first(devices), service_model)[1]
+
+        initial_time = PSI.model_initial_time(optimization_container)
+        @debug initial_time
+        time_steps = PSI.model_time_steps(optimization_container)
+        set_name = [PSY.get_name(x) for x in devices]
+        const_name = PSI.make_constraint_name(ENERGY_CONTRIBUTION_LIMIT, T)
+        constraint = PSI.add_cons_container!(
+            optimization_container,
+            const_name,
+            set_name,
+            time_steps,
+        )
+        reserve_variable =
+            PSI.get_variable(optimization_container, PSY.get_name(service), typeof(service))
+        p_variable = PSI.get_variable(optimization_container, PSI.ActivePowerOutVariable, T)
+        for t in time_steps, name in set_name
+            constraint[name, t] = JuMP.@constraint(
+                optimization_container.JuMPmodel,
+                reserve_variable[name, t] == p_variable[name, t]
+            )
+        end
     end
     return
 end

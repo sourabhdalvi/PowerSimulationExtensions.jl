@@ -1,23 +1,11 @@
 struct RenewableFullDispatchInertia <: PSI.AbstractRenewableDispatchFormulation end
-struct RenewableFullDispatchMinGen <: PSI.AbstractRenewableDispatchFormulation end
-struct RenewableFullDispatchEMIS <: PSI.AbstractRenewableDispatchFormulation end
+struct RenewableCleanEnergyDispatch <: PSI.AbstractRenewableDispatchFormulation end
+struct RenewableEmisDispatch <: PSI.AbstractRenewableDispatchFormulation end
 
-function _has_min_gen_service(model)
-    for service_model in PSI.get_services(model)
-        if service_model.formulation == RenewableMinGen
-            return true
-        end
-    end
-    return false
-end
-
-function _get_min_gen_service_model(model)
-    for service_model in PSI.get_services(model)
-        if service_model.formulation == RenewableMinGen
-            return service_model
-        end
-    end
-end
+PSI.get_variable_binary(::ActivePowerShortageVariable, ::Type{<:PSY.RenewableGen}, _) = false
+PSI.get_variable_lower_bound(::ActivePowerShortageVariable, d::PSY.RenewableGen, _) = 0.0
+PSI.get_variable_upper_bound(::ActivePowerShortageVariable, d::PSY.RenewableGen, _) = PSY.get_rating(d)
+# PSI.get_variable_sign(::ActivePowerShortageVariable, ::Type{<:PSY.RenewableGen}, _) = 1.0
 
 function inertia_constraints!(
     optimization_container::PSI.OptimizationContainer,
@@ -27,7 +15,7 @@ function inertia_constraints!(
     feedforward::Union{Nothing, PSI.AbstractAffectFeedForward},
 ) where {
     T <: PSY.RenewableGen,
-    D <: RenewableFullDispatchInertia,
+    D <: Union{RenewableFullDispatchInertia, RenewableEmisDispatch},
     S <: PM.AbstractPowerModel,
 }
     if _has_inertia_service(model)
@@ -79,11 +67,11 @@ function energy_contribution_constraint!(
     feedforward::Union{Nothing, PSI.AbstractAffectFeedForward},
 ) where {
     T <: PSY.RenewableGen,
-    D <: RenewableFullDispatchMinGen,
+    D <: Union{RenewableCleanEnergyDispatch, RenewableEmisDispatch},
     S <: PM.AbstractPowerModel,
 }
-    if _has_min_gen_service(model)
-        service_model = _get_min_gen_service_model(model)
+    if _has_clean_energy_service(model)
+        service_model = _get_clean_energy_service_model(model)
         service = _get_services(first(devices), service_model)[1]
 
         initial_time = PSI.model_initial_time(optimization_container)
