@@ -3,6 +3,7 @@ abstract type AbstractInertiaStandardUnitCommitment <: PSI.AbstractStandardUnitC
 struct ThermalInertiaBasicUnitCommitment <: AbstractInertiaStandardUnitCommitment end
 struct ThermalInertiaStandardUnitCommitment <: AbstractInertiaStandardUnitCommitment end
 struct ThermalEmisStandardUnitCommitment <: AbstractInertiaStandardUnitCommitment end
+struct ThermalCleanStandardUnitCommitment <: PSI.AbstractStandardUnitCommitment end
 
 PSI.get_variable_binary(::ActivePowerShortageVariable, ::Type{<:PSY.ThermalGen}, _) = false
 PSI.get_variable_lower_bound(::ActivePowerShortageVariable, d::PSY.ThermalGen, _) = 0.0
@@ -114,7 +115,7 @@ function energy_contribution_constraint!(
     feedforward::Union{Nothing, PSI.AbstractAffectFeedForward},
 ) where {
     T <: PSY.ThermalGen,
-    D <: ThermalEmisStandardUnitCommitment,
+    D <: Union{ThermalEmisStandardUnitCommitment, ThermalCleanStandardUnitCommitment},
     S <: PM.AbstractPowerModel,
 }
     if _has_clean_energy_service(model)
