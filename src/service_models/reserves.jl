@@ -1,6 +1,6 @@
 struct QuadraticCostRampReserve <: PSI.AbstractReservesFormulation end
-struct InertiaReserve <: PSI.AbstractReservesFormulation end
-struct RenewableMinGen <: PSI.AbstractReservesFormulation end
+struct VariableInertiaReserve <: PSI.AbstractReservesFormulation end
+struct EnergyRequirementReserve <: PSI.AbstractReservesFormulation end
 
 PSI.get_variable_binary(
     ::InertiaServiceVariable,
@@ -30,6 +30,9 @@ function _get_inertia(d::PSY.Component)
     if haskey(PSY.get_ext(d), "inertia")
         return PSY.get_ext(d)["inertia"]
     else
+        @info(
+            "Inertia data (h-constant) is missing in Generator $(PSY.get_name(d)), h-constant will be set to 0."
+        )
         return 0.0
     end
 end
@@ -85,7 +88,7 @@ end
 function PSI.service_requirement_constraint!(
     optimization_container::PSI.OptimizationContainer,
     service::SR,
-    ::PSI.ServiceModel{SR, RenewableMinGen},
+    ::PSI.ServiceModel{SR, EnergyRequirementReserve},
 ) where {SR <: PSY.Reserve}
     parameters = PSI.model_has_parameters(optimization_container)
     use_forecast_data = PSI.model_uses_forecasts(optimization_container)
@@ -138,7 +141,7 @@ end
 function PSI.service_requirement_constraint!(
     optimization_container::PSI.OptimizationContainer,
     service::SR,
-    ::PSI.ServiceModel{SR, InertiaReserve},
+    ::PSI.ServiceModel{SR, VariableInertiaReserve},
 ) where {SR <: PSY.Reserve}
     parameters = PSI.model_has_parameters(optimization_container)
     use_forecast_data = PSI.model_uses_forecasts(optimization_container)
@@ -220,17 +223,15 @@ end
 
 function PSI.modify_device_model!(
     devices_template::Dict{Symbol, PSI.DeviceModel},
-    service_model::PSI.ServiceModel{<:PSY.Reserve, InertiaReserve},
+    service_model::PSI.ServiceModel{<:PSY.Reserve, VariableInertiaReserve},
     contributing_devices::Vector{<:PSY.Device},
 )
     device_types = unique(typeof.(contributing_devices))
     for dt in device_types
-        if dt <: PSY.RenewableGen || dt <: PSY.Storage
-            for (device_model_name, device_model) in devices_template
-                PSI.get_component_type(device_model) != dt && continue
-                service_model in device_model.services && continue
-                push!(device_model.services, service_model)
-            end
+        for (device_model_name, device_model) in devices_template
+            PSI.get_component_type(device_model) != dt && continue
+            service_model in device_model.services && continue
+            push!(device_model.services, service_model)
         end
     end
 
@@ -256,7 +257,7 @@ end
 function PSI.include_service!(
     constraint_info::T,
     services,
-    ::PSI.ServiceModel{SR, InertiaReserve},
+    ::PSI.ServiceModel{SR, VariableInertiaReserve},
 ) where {
     T <: Union{PSI.AbstractRangeConstraintInfo, PSI.AbstractRampConstraintInfo},
     SR <: PSY.Reserve,
@@ -266,17 +267,15 @@ end
 
 function PSI.modify_device_model!(
     devices_template::Dict{Symbol, PSI.DeviceModel},
-    service_model::PSI.ServiceModel{<:PSY.Reserve, RenewableMinGen},
+    service_model::PSI.ServiceModel{<:PSY.Reserve, EnergyRequirementReserve},
     contributing_devices::Vector{<:PSY.Device},
 )
     device_types = unique(typeof.(contributing_devices))
     for dt in device_types
-        if dt <: PSY.RenewableGen
-            for (device_model_name, device_model) in devices_template
-                PSI.get_component_type(device_model) != dt && continue
-                service_model in device_model.services && continue
-                push!(device_model.services, service_model)
-            end
+        for (device_model_name, device_model) in devices_template
+            PSI.get_component_type(device_model) != dt && continue
+            service_model in device_model.services && continue
+            push!(device_model.services, service_model)
         end
     end
 
@@ -286,7 +285,7 @@ end
 function PSI.include_service!(
     constraint_info::T,
     services,
-    ::PSI.ServiceModel{SR, RenewableMinGen},
+    ::PSI.ServiceModel{SR, EnergyRequirementReserve},
 ) where {
     T <: Union{PSI.AbstractRangeConstraintInfo, PSI.AbstractRampConstraintInfo},
     SR <: PSY.Reserve,

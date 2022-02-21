@@ -78,6 +78,87 @@ end
 
 PSI.get_binary_source_problem(p::ReserveSemiContinuousFF) = p.binary_source_problem
 
+struct EnergyCommitmentFF <: PSI.AbstractAffectFeedForward
+    variable_source_problem::Symbol
+    affected_variables::Vector{Symbol}
+    affected_time_periods::Int
+    cache::Union{Nothing, Type{<:PSI.AbstractCache}}
+    function EnergyCommitmentFF(
+        variable_source_problem::AbstractString,
+        affected_variables::Vector{<:AbstractString},
+        affected_time_periods::Int,
+        cache::Union{Nothing, Type{<:PSI.AbstractCache}},
+    )
+        new(
+            Symbol(variable_source_problem),
+            Symbol.(affected_variables),
+            affected_time_periods,
+            cache,
+        )
+    end
+end
+
+function EnergyCommitmentFF(;
+    variable_source_problem,
+    affected_variables,
+    affected_time_periods,
+)
+    return EnergyCommitmentFF(
+        variable_source_problem,
+        affected_variables,
+        affected_time_periods,
+        nothing,
+    )
+end
+
+PSI.get_variable_source_problem(p::EnergyCommitmentFF) = p.variable_source_problem
+
+struct EmisFF <: PSI.AbstractAffectFeedForward
+    binary_source_problem::Symbol
+    variable_source_problem::Symbol
+    affected_variables::Vector{Symbol}
+    affected_time_periods::Int
+    service::PSY.Reserve
+    cache::Union{Nothing, Type{<:PSI.AbstractCache}}
+    function EmisFF(
+        binary_source_problem::AbstractString,
+        variable_source_problem::AbstractString,
+        affected_variables::Vector{<:AbstractString},
+        affected_time_periods::Int,
+        service::PSY.Reserve,
+        cache::Union{Nothing, Type{<:PSI.AbstractCache}},
+    )
+        new(
+            Symbol(binary_source_problem),
+            Symbol(variable_source_problem),
+            Symbol.(affected_variables),
+            affected_time_periods,
+            service,
+            cache,
+        )
+    end
+end
+
+function EmisFF(;
+    binary_source_problem,
+    variable_source_problem,
+    affected_variables,
+    affected_time_periods,
+    service,
+)
+    return EmisFF(
+        binary_source_problem,
+        variable_source_problem,
+        affected_variables,
+        affected_time_periods,
+        service,
+        nothing,
+    )
+end
+
+PSI.get_variable_source_problem(p::EmisFF) = p.variable_source_problem
+PSI.get_binary_source_problem(p::EmisFF) = p.binary_source_problem
+
 ####################### Feed Forward Affects ###############################################
 @doc raw"""
 
@@ -93,7 +174,7 @@ function inertia_ff(
     variable = PSI.get_variable(optimization_container, var_name)
 
     axes = JuMP.axes(variable)
-    set_name = axes[1]
+    set_name = [d.component_name for d in constraint_infos]
     @assert axes[2] == time_steps
     container = PSI.get_parameter_container(optimization_container, param_reference)
     param_on = PSI.get_parameter_array(container)
@@ -225,6 +306,46 @@ function reserve_semicontinuousrange_ff(
     return
 end
 
+function energy_commitment_ff(
+    optimization_container::PSI.OptimizationContainer,
+    cons_name::Symbol,
+    param_reference::PSI.UpdateRef,
+    var_names::Tuple{Symbol, Symbol},
+    affected_time_periods::Int,
+)
+    time_steps = PSI.model_time_steps(optimization_container)
+    ub_name = PSI.middle_rename(cons_name, PSI.PSI_NAME_DELIMITER, "energy_commitment")
+    variable = PSI.get_variable(optimization_container, var_names[1])
+    varslack = PSI.get_variable(optimization_container, var_names[2])
+
+    axes = JuMP.axes(variable)
+    set_name = axes[1]
+
+    @assert axes[2] == time_steps
+    container_ub =
+        PSI.add_param_container!(optimization_container, param_reference, set_name)
+    param_ub = PSI.get_parameter_array(container_ub)
+    multiplier_ub = PSI.get_multiplier_array(container_ub)
+    con_ub = PSI.add_cons_container!(optimization_container, ub_name, set_name)
+
+    for name in axes[1]
+        value = JuMP.upper_bound(variable[name, 1])
+        param_ub[name] = PSI.add_parameter(optimization_container.JuMPmodel, value)
+        # default set to 1.0, as this implementation doesn't use multiplier
+        multiplier_ub[name] = 1.0
+        con_ub[name] = JuMP.@constraint(
+            optimization_container.JuMPmodel,
+            sum(variable[name, t] + varslack[name, t] for t in 1:affected_time_periods) / affected_time_periods == param_ub[name] * multiplier_ub[name]
+        )
+        for t in 1:affected_time_periods
+            PSI.add_to_cost_expression!(
+                optimization_container,
+                varslack[name, t] * FEEDFORWARD_SLACK_COST,
+            )
+        end
+    end
+end
+
 ########################## FeedForward Constraints #########################################
 
 function PSI.feedforward!(
@@ -317,6 +438,108 @@ function PSI.feedforward!(
             constraint_infos,
             parameter_ref,
             var_name,
+        )
+    end
+end
+
+function PSI.feedforward!(
+    optimization_container::PSI.OptimizationContainer,
+    devices::IS.FlattenIteratorWrapper{T},
+    model::PSI.DeviceModel{T, D},
+    ff_model::EnergyCommitmentFF,
+) where {T <: PSY.StaticInjection, D <: PSI.AbstractDeviceFormulation}
+
+    # Energy FF
+    PSI.add_variables!(optimization_container, ActivePowerShortageVariable, devices, D())
+    time_steps = PSI.model_time_steps(optimization_container)
+    slack_var_name = PSI.make_variable_name(ActivePowerShortageVariable, T)
+    slack_variable = PSI.get_variable(optimization_container, slack_var_name)
+    for d in devices, t in time_steps
+        name = PSY.get_name(d)
+        slack_variable[name, t] = JuMP.@variable(
+            optimization_container.JuMPmodel,
+            base_name = "$(slack_var_name)_{$(name), $(t)}",
+        )
+        JuMP.set_lower_bound(slack_variable[name, t], 0.0)
+    end
+    for prefix in PSI.get_affected_variables(ff_model)
+        var_name = PSI.make_variable_name(prefix, T)
+        parameter_ref = PSI.UpdateRef{JuMP.VariableRef}(var_name)
+        energy_commitment_ff(
+            optimization_container,
+            PSI.make_constraint_name(FEEDFORWARD_ENERGY_COMMITMENT, T),
+            parameter_ref,
+            (var_name, slack_var_name),
+            ff_model.affected_time_periods,
+        )
+    end
+end
+
+function PSI.feedforward!(
+    optimization_container::PSI.OptimizationContainer,
+    devices::IS.FlattenIteratorWrapper{T},
+    model::PSI.DeviceModel{T, D},
+    ff_model::EmisFF,
+) where {T <: PSY.StaticInjection, D <: PSI.AbstractDeviceFormulation}
+    bin_var = PSI.make_variable_name(PSI.get_binary_source_problem(ff_model), T)
+    parameter_ref = PSI.UpdateRef{JuMP.VariableRef}(bin_var)
+    constraint_infos = Vector{PSI.DeviceRangeConstraintInfo}(undef, length(devices))
+    inertia_constraint_infos = Vector{InertiaServiceConstraintInfo}(undef, length(devices))
+    for (ix, d) in enumerate(devices)
+        name = PSY.get_name(d)
+        inertia = _get_inertia(d)
+        device_base = PSY.get_base_power(d)
+        limits = PSY.get_active_power_limits(d)
+        constraint_info = PSI.DeviceRangeConstraintInfo(name, limits)
+        PSI.add_device_services!(constraint_info, d, model)
+        constraint_infos[ix] = constraint_info
+        inertia_constraint_infos[ix] =
+            InertiaServiceConstraintInfo(name, inertia, device_base)
+    end
+    for prefix in PSI.get_affected_variables(ff_model)
+        # Semi-Continuous FF
+        var_name = PSI.make_variable_name(prefix, T)
+        PSI.semicontinuousrange_ff(
+            optimization_container,
+            PSI.make_constraint_name(PSI.FEEDFORWARD_BIN, T),
+            constraint_infos,
+            parameter_ref,
+            var_name,
+        )
+    end
+    # Inertia FF
+    var_name =
+        PSI.make_variable_name(PSY.get_name(ff_model.service), typeof(ff_model.service))
+    inertia_ff(
+        optimization_container,
+        PSI.make_constraint_name(INERTIA_LIMIT, T),
+        inertia_constraint_infos,
+        parameter_ref,
+        var_name,
+    )
+
+    # Energy FF
+    PSI.add_variables!(optimization_container, ActivePowerShortageVariable, devices, D())
+    time_steps = PSI.model_time_steps(optimization_container)
+    slack_var_name = PSI.make_variable_name(ActivePowerShortageVariable, T)
+    slack_variable = PSI.get_variable(optimization_container, slack_var_name)
+    for d in devices, t in time_steps
+        name = PSY.get_name(d)
+        slack_variable[name, t] = JuMP.@variable(
+            optimization_container.JuMPmodel,
+            base_name = "$(slack_var_name)_{$(name), $(t)}",
+        )
+        JuMP.set_lower_bound(slack_variable[name, t], 0.0)
+    end
+    for prefix in PSI.get_affected_variables(ff_model)
+        var_name = PSI.make_variable_name(prefix, T)
+        parameter_ref = PSI.UpdateRef{JuMP.VariableRef}(var_name)
+        energy_commitment_ff(
+            optimization_container,
+            PSI.make_constraint_name(FEEDFORWARD_ENERGY_COMMITMENT, T),
+            parameter_ref,
+            (var_name, slack_var_name),
+            ff_model.affected_time_periods,
         )
     end
 end

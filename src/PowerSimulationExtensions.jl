@@ -9,16 +9,22 @@ export MILPDualProblemCC
 
 # Service Formulations
 export QuadraticCostRampReserve
-export InertiaReserve
-export RenewableMinGen
+export VariableInertiaReserve
+export EnergyRequirementReserve
 
 # Device Formulations
 export ThermalInertiaBasicUnitCommitment
 export ThermalInertiaStandardUnitCommitment
+export ThermalEmisStandardUnitCommitment
 export HydroInertiaCommitmentRunOfRiver
+export HydroCleanEnergyRunOfRiver
+export HydroEmisCommitmentRunOfRiver
 export BookKeepingwInertia
+export BookKeepingwCleanEnergy
+export BookKeepingEmis
 export RenewableFullDispatchInertia
-export RenewableFullDispatchMinGen
+export RenewableCleanEnergyDispatch
+export RenewableEmisDispatch
 
 # Branch Formulations
 export StaticBranchFlowCost
@@ -27,10 +33,15 @@ export StaticBranchFlowCost
 export InertiaFF
 export EnergyTargetFF
 export ReserveSemiContinuousFF
+export EnergyCommitmentFF
+export EmisFF
 
 #################################################################################
 # Imports
 import PowerSystems
+import PowerSystemExtensions
+import PowerSystemExtensions: CleanEnergyReserve, InertiaReserve, ThermalCleanEnergy
+
 import PowerSimulations
 import JuMP
 import DataFrames
@@ -38,7 +49,6 @@ import ParameterJuMP
 import InfrastructureSystems
 import Dates
 import MathOptInterface
-# import Gurobi
 
 const IS = InfrastructureSystems
 const MOI = MathOptInterface

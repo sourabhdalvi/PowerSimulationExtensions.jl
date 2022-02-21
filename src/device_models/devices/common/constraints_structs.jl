@@ -14,12 +14,12 @@ struct InertiaServiceConstraintInfo <: PSI.AbstractRangeConstraintInfo
 end
 
 function InertiaServiceConstraintInfo(
-    name::String,
+    component_name::String,
     h_constant::Float64,
     base_power::Float64,
 )
     return InertiaServiceConstraintInfo(
-        name,
+        component_name,
         h_constant,
         base_power,
         Vector{Symbol}(),
